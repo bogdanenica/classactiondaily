@@ -21,11 +21,16 @@ export async function GET(request: Request) {
   url.searchParams.set('filed_after', yesterday);
   url.searchParams.set('order_by', 'dateFiled desc');
 
-  const res = await fetch(url.toString(), {
-    headers: { Authorization: `Token ${process.env.COURTLISTENER_TOKEN}` },
-  });
-  if (!res.ok) {
-    return NextResponse.json({ error: `CourtListener: ${res.status}` }, { status: 500 });
+  let res: Response | null = null;
+  for (let attempt = 1; attempt <= 3; attempt++) {
+    res = await fetch(url.toString(), {
+      headers: { Authorization: `Token ${process.env.COURTLISTENER_TOKEN}` },
+    });
+    if (res.ok) break;
+    if (attempt < 3) await new Promise(r => setTimeout(r, 2000 * attempt));
+  }
+  if (!res || !res.ok) {
+    return NextResponse.json({ error: `CourtListener: ${res?.status ?? 'no response'}` }, { status: 500 });
   }
   const data = await res.json();
 
