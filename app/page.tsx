@@ -93,4 +93,11 @@ export default async function Home() {
       </div>
     </>
   );
+  const cases = await sql`
+    SELECT id, case_name, defendant, court_name, docket_number,
+           date_filed, category, allegation_type, summary, image_url
+    FROM cases
+    ORDER BY date_filed DESC, id DESC
+    LIMIT 20
+  `;
 }

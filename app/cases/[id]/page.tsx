@@ -12,9 +12,9 @@ export default async function CaseDetail({ params }: { params: Promise<{ id: str
   const caseId = parseInt(id, 10);
   if (isNaN(caseId)) notFound();
 
-  const rows = await sql`
+const rows = await sql`
     SELECT id, case_name, defendant, court_name, court_id, docket_number,
-           date_filed, category, allegation_type, summary, raw_complaint_url
+           date_filed, category, allegation_type, summary, raw_complaint_url, image_url
     FROM cases WHERE id = ${caseId}
   `;
   const c = rows[0];
@@ -47,6 +47,13 @@ export default async function CaseDetail({ params }: { params: Promise<{ id: str
 
       <div className="detail-body">
         <div className="detail-main">
+            {c.image_url && (
+            <img
+              src={c.image_url}
+              alt=""
+              style={{ width: '100%', maxHeight: 320, objectFit: 'cover', borderRadius: 4, marginBottom: 20, display: 'block' }}
+            />
+          )}
           <h2>What this case is about</h2>
           <p>{c.summary}</p>
 

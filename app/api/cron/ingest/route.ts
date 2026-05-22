@@ -9,11 +9,10 @@ export async function GET(request: Request) {
   const authHeader = request.headers.get('authorization');
   if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }
+  }export const maxDuration = 300; // 5 min, in case of slow batches
 
   const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000)
     .toISOString().split('T')[0];
-
   // CourtListener search endpoint — fast and does class-action text matching server-side
   const url = new URL('https://www.courtlistener.com/api/rest/v4/search/');
   url.searchParams.set('type', 'r');             // RECAP / federal court dockets
@@ -44,16 +43,27 @@ export async function GET(request: Request) {
 
     const caseName = r.caseName || '';
     const summary = await summarizeCase(caseName, r.cause || '', r.suitNature || '');
-
-    await sql`
+// Generate an editorial image for this case (non-fatal if it fails)
+    let imageUrl: string | null = null;
+    try {
+      const imgPrompt = await generateImagePrompt({
+        category: summary.category,
+        allegation: summary.allegation_type,
+      });
+      imageUrl = await generateAndStoreImage(imgPrompt, `cases/${r.docket_id}`);
+    } catch (err) {
+      console.error('Image gen failed:', err);
+    }
+    aawait sql`
       INSERT INTO cases (
         courtlistener_id, docket_number, case_name, court_id, court_name,
-        date_filed, defendant, category, allegation_type, summary, raw_complaint_url
+        date_filed, defendant, category, allegation_type, summary, raw_complaint_url, image_url
       ) VALUES (
         ${r.docket_id}, ${r.docketNumber}, ${caseName}, ${r.court_id},
         ${r.court}, ${r.dateFiled}, ${summary.defendant},
         ${summary.category}, ${summary.allegation_type}, ${summary.summary},
-        ${r.docket_absolute_url ? `https://www.courtlistener.com${r.docket_absolute_url}` : null}
+        ${r.docket_absolute_url ? `https://www.courtlistener.com${r.docket_absolute_url}` : null},
+        ${imageUrl}
       )
     `;
     inserted++;
@@ -87,4 +97,4 @@ Respond ONLY with valid JSON in this exact shape:
   const text = message.content[0].type === 'text' ? message.content[0].text : '';
   const cleaned = text.replace(/^```json\s*/, '').replace(/```\s*$/, '').trim();
   return JSON.parse(cleaned);
-}
+}import { generateImagePrompt, generateAndStoreImage } from '@/app/lib/imageGen';
