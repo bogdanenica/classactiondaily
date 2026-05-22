@@ -2,12 +2,9 @@ import { neon } from '@neondatabase/serverless';
 import Anthropic from '@anthropic-ai/sdk';
 import { NextResponse } from 'next/server';
 import { generateImagePrompt, generateAndStoreImage } from '@/app/lib/imageGen';
-
 const sql = neon(process.env.DATABASE_URL!);
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY! });
-
 export const maxDuration = 300;
-
 export async function GET(request: Request) {
   const authHeader = request.headers.get('authorization');
   if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
@@ -48,12 +45,10 @@ export async function GET(request: Request) {
     const caseName = r.caseName || '';
     const summary = await summarizeCase(caseName, r.cause || '', r.suitNature || '');
 
-    // Skip cases that don't fit our consumer-product taxonomy
     if (summary.category === 'Other') {
       continue;
     }
 
-    // Generate an editorial image (non-fatal if it fails)
     let imageUrl: string | null = null;
     try {
       const imgPrompt = await generateImagePrompt({
