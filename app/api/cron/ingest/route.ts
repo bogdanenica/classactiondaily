@@ -5,9 +5,6 @@ import { NextResponse } from 'next/server';
 const sql = neon(process.env.DATABASE_URL!);
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY! });
 
-// Nature of suit codes that typically indicate consumer class actions
-const CONSUMER_NOS_CODES = ['195', '365', '370', '380', '890'];
-
 export async function GET(request: Request) {
   // Vercel Cron sends an Authorization header; reject anyone else
   const authHeader = request.headers.get('authorization');
@@ -18,12 +15,11 @@ export async function GET(request: Request) {
   const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000)
     .toISOString().split('T')[0];
 
-  // CourtListener "dockets" endpoint, filtered to recent class action filings
+ // CourtListener "dockets" endpoint, filtered to recent filings; we filter for class actions in code below
   const url = new URL('https://www.courtlistener.com/api/rest/v4/dockets/');
   url.searchParams.set('date_filed__gte', yesterday);
-  url.searchParams.set('nature_of_suit__in', CONSUMER_NOS_CODES.join(','));
-  url.searchParams.set('court__jurisdiction', 'FD'); // Federal district
-  url.searchParams.set('page_size', '50');
+  url.searchParams.set('order_by', '-date_filed');
+  url.searchParams.set('page_size', '100');
 
   const res = await fetch(url.toString(), {
     headers: { Authorization: `Token ${process.env.COURTLISTENER_TOKEN}` },
