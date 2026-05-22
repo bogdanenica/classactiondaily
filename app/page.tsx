@@ -6,9 +6,9 @@ export const revalidate = 3600;
 const sql = neon(process.env.DATABASE_URL!);
 
 export default async function Home() {
-  const cases = await sql`
+    const cases = await sql`
     SELECT id, case_name, defendant, court_name, docket_number,
-           date_filed, category, allegation_type, summary
+           date_filed, category, allegation_type, summary, image_url
     FROM cases
     ORDER BY date_filed DESC, id DESC
     LIMIT 20
@@ -71,7 +71,14 @@ export default async function Home() {
           {cases.map((c: any) => {
             const isNew = new Date(c.date_filed).toISOString().split('T')[0] === today;
             return (
-              <Link key={c.id} href={`/cases/${c.id}`} className="case-card">
+<Link key={c.id} href={`/cases/${c.id}`} className="case-card">
+                {c.image_url && (
+                  <img
+                    src={c.image_url}
+                    alt=""
+                    style={{ width: '100%', height: 180, objectFit: 'cover', borderRadius: 4, marginBottom: 14, display: 'block' }}
+                  />
+                )}
                 <div className="case-meta">
                   {isNew && <span className="tag new">New today</span>}
                   {c.category && <span className="tag">{c.category}</span>}
@@ -93,11 +100,5 @@ export default async function Home() {
       </div>
     </>
   );
-  const cases = await sql`
-    SELECT id, case_name, defendant, court_name, docket_number,
-           date_filed, category, allegation_type, summary, image_url
-    FROM cases
-    ORDER BY date_filed DESC, id DESC
-    LIMIT 20
-  `;
+
 }
