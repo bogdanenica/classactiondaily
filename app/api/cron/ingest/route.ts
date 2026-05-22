@@ -6,7 +6,6 @@ const sql = neon(process.env.DATABASE_URL!);
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY! });
 
 export async function GET(request: Request) {
-  // Vercel Cron sends an Authorization header; reject anyone else
   const authHeader = request.headers.get('authorization');
   if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -15,11 +14,12 @@ export async function GET(request: Request) {
   const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000)
     .toISOString().split('T')[0];
 
- // CourtListener "dockets" endpoint, filtered to recent filings; we filter for class actions in code below
-  const url = new URL('https://www.courtlistener.com/api/rest/v4/dockets/');
-  url.searchParams.set('date_filed__gte', yesterday);
-  url.searchParams.set('order_by', '-date_filed');
-  url.searchParams.set('page_size', '100');
+  // CourtListener search endpoint — fast and does class-action text matching server-side
+  const url = new URL('https://www.courtlistener.com/api/rest/v4/search/');
+  url.searchParams.set('type', 'r');             // RECAP / federal court dockets
+  url.searchParams.set('q', '"class action"');
+  url.searchParams.set('filed_after', yesterday);
+  url.searchParams.set('order_by', 'dateFiled desc');
 
   const res = await fetch(url.toString(), {
     headers: { Authorization: `Token ${process.env.COURTLISTENER_TOKEN}` },
@@ -30,31 +30,25 @@ export async function GET(request: Request) {
   const data = await res.json();
 
   let inserted = 0;
-  for (const docket of data.results) {
+  for (const r of data.results) {
     // Skip if we already have this docket
     const existing = await sql`
-      SELECT id FROM cases WHERE courtlistener_id = ${docket.id}
+      SELECT id FROM cases WHERE courtlistener_id = ${r.docket_id}
     `;
     if (existing.length > 0) continue;
 
-    // Only proceed if the docket appears to be a class action
-    const caseName = docket.case_name || '';
-    if (!/class action|class[- ]wide|putative class/i.test(caseName + ' ' + (docket.cause || ''))) {
-      continue;
-    }
-
-    // Ask Claude to summarize + classify
-    const summary = await summarizeCase(caseName, docket.cause, docket.nature_of_suit);
+    const caseName = r.caseName || '';
+    const summary = await summarizeCase(caseName, r.cause || '', r.suitNature || '');
 
     await sql`
       INSERT INTO cases (
         courtlistener_id, docket_number, case_name, court_id, court_name,
         date_filed, defendant, category, allegation_type, summary, raw_complaint_url
       ) VALUES (
-        ${docket.id}, ${docket.docket_number}, ${caseName}, ${docket.court_id},
-        ${docket.court}, ${docket.date_filed}, ${summary.defendant},
+        ${r.docket_id}, ${r.docketNumber}, ${caseName}, ${r.court_id},
+        ${r.court}, ${r.dateFiled}, ${summary.defendant},
         ${summary.category}, ${summary.allegation_type}, ${summary.summary},
-        ${`https://www.courtlistener.com${docket.absolute_url}`}
+        ${r.docket_absolute_url ? `https://www.courtlistener.com${r.docket_absolute_url}` : null}
       )
     `;
     inserted++;
@@ -63,7 +57,7 @@ export async function GET(request: Request) {
   return NextResponse.json({ ok: true, inserted, scanned: data.results.length });
 }
 
-async function summarizeCase(caseName: string, cause: string, nos: string) {
+async function summarizeCase(caseName: string, cause: string, suitNature: string) {
   const message = await anthropic.messages.create({
     model: 'claude-sonnet-4-6',
     max_tokens: 600,
@@ -73,7 +67,7 @@ async function summarizeCase(caseName: string, cause: string, nos: string) {
 
 Case name: ${caseName}
 Cause of action: ${cause || 'not specified'}
-Nature of suit code: ${nos}
+Nature of suit: ${suitNature || 'not specified'}
 
 Respond ONLY with valid JSON in this exact shape:
 {
@@ -86,7 +80,6 @@ Respond ONLY with valid JSON in this exact shape:
   });
 
   const text = message.content[0].type === 'text' ? message.content[0].text : '';
-  // Strip ```json fences if Claude added them
   const cleaned = text.replace(/^```json\s*/, '').replace(/```\s*$/, '').trim();
   return JSON.parse(cleaned);
 }
