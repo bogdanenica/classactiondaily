@@ -1,21 +1,26 @@
 import { neon } from '@neondatabase/serverless';
 import Anthropic from '@anthropic-ai/sdk';
 import { NextResponse } from 'next/server';
+import { generateImagePrompt, generateAndStoreImage } from '@/app/lib/imageGen';
 
 const sql = neon(process.env.DATABASE_URL!);
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY! });
+
+export const maxDuration = 300;
 
 export async function GET(request: Request) {
   const authHeader = request.headers.get('authorization');
   if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }export const maxDuration = 300; // 5 min, in case of slow batches
+  }
+
+  const imageErrors: string[] = [];
 
   const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000)
     .toISOString().split('T')[0];
-  // CourtListener search endpoint — fast and does class-action text matching server-side
+
   const url = new URL('https://www.courtlistener.com/api/rest/v4/search/');
-  url.searchParams.set('type', 'r');             // RECAP / federal court dockets
+  url.searchParams.set('type', 'r');
   url.searchParams.set('q', '"class action"');
   url.searchParams.set('filed_after', yesterday);
   url.searchParams.set('order_by', 'dateFiled desc');
@@ -35,7 +40,6 @@ export async function GET(request: Request) {
 
   let inserted = 0;
   for (const r of data.results) {
-    // Skip if we already have this docket
     const existing = await sql`
       SELECT id FROM cases WHERE courtlistener_id = ${r.docket_id}
     `;
@@ -43,7 +47,13 @@ export async function GET(request: Request) {
 
     const caseName = r.caseName || '';
     const summary = await summarizeCase(caseName, r.cause || '', r.suitNature || '');
-// Generate an editorial image for this case (non-fatal if it fails)
+
+    // Skip cases that don't fit our consumer-product taxonomy
+    if (summary.category === 'Other') {
+      continue;
+    }
+
+    // Generate an editorial image (non-fatal if it fails)
     let imageUrl: string | null = null;
     try {
       const imgPrompt = await generateImagePrompt({
@@ -51,10 +61,12 @@ export async function GET(request: Request) {
         allegation: summary.allegation_type,
       });
       imageUrl = await generateAndStoreImage(imgPrompt, `cases/${r.docket_id}`);
-    } catch (err) {
+    } catch (err: any) {
       console.error('Image gen failed:', err);
+      imageErrors.push(`${r.docket_id}: ${err?.message || String(err)}`);
     }
-    aawait sql`
+
+    await sql`
       INSERT INTO cases (
         courtlistener_id, docket_number, case_name, court_id, court_name,
         date_filed, defendant, category, allegation_type, summary, raw_complaint_url, image_url
@@ -69,7 +81,7 @@ export async function GET(request: Request) {
     inserted++;
   }
 
-  return NextResponse.json({ ok: true, inserted, scanned: data.results.length });
+  return NextResponse.json({ ok: true, inserted, scanned: data.results.length, imageErrors });
 }
 
 async function summarizeCase(caseName: string, cause: string, suitNature: string) {
@@ -97,4 +109,4 @@ Respond ONLY with valid JSON in this exact shape:
   const text = message.content[0].type === 'text' ? message.content[0].text : '';
   const cleaned = text.replace(/^```json\s*/, '').replace(/```\s*$/, '').trim();
   return JSON.parse(cleaned);
-}import { generateImagePrompt, generateAndStoreImage } from '@/app/lib/imageGen';
+}
