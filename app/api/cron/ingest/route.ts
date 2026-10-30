@@ -1,7 +1,7 @@
 import { neon } from '@neondatabase/serverless';
 import Anthropic from '@anthropic-ai/sdk';
 import { NextResponse } from 'next/server';
-import { generateImagePrompt, generateAndStoreImage } from '@/app/lib/imageGen';
+import { generateImagePrompt, generateAndStoreImage, IMAGE_VERSION } from '@/app/lib/imageGen';
 const sql = neon(process.env.DATABASE_URL!);
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY! });
 export const maxDuration = 300;
@@ -51,11 +51,15 @@ export async function GET(request: Request) {
 
     let imageUrl: string | null = null;
     try {
+      // CHANGED: the image step now sees the whole case, not just two labels.
       const imgPrompt = await generateImagePrompt({
+        caseName,
+        defendant: summary.defendant,
         category: summary.category,
         allegation: summary.allegation_type,
+        summary: summary.summary,
       });
-      imageUrl = await generateAndStoreImage(imgPrompt, `cases/${r.docket_id}`);
+      imageUrl = await generateAndStoreImage(imgPrompt, `cases/${r.docket_id}-${IMAGE_VERSION}`);
     } catch (err: any) {
       console.error('Image gen failed:', err);
       imageErrors.push(`${r.docket_id}: ${err?.message || String(err)}`);
