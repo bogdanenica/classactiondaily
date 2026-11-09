@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import IntakeForm from '../../components/IntakeForm';
 import JsonLd from '../../components/JsonLd';
-import { SITE_URL, OWNER, snippet, formatDate } from '../../lib/site';
+import { SITE_URL, OWNER, snippet, formatDate, fitTitle } from '../../lib/site';
 
 export const revalidate = 3600;
 
@@ -16,14 +16,18 @@ async function getInvestigation(idRaw: string) {
   const invId = parseInt(idRaw, 10);
   if (isNaN(invId)) return null;
   const rows = await sql`SELECT * FROM investigations WHERE id = ${invId}`;
-  return rows[0] ?? null;
+  const v = rows[0] ?? null;
+  // Drafts are only visible in /admin until approved.
+  if (v && v.status === 'draft') return null;
+  return v;
 }
 
 export async function generateMetadata({ params }: { params: Params }): Promise<Metadata> {
   const { id } = await params;
   const v = await getInvestigation(id);
   if (!v) return { title: 'Investigation not found' };
-  const title = `${v.title} — open investigation`;
+  const title = fitTitle(`${v.title} — open investigation`, `${v.title} — investigation`, v.title);
+  const ogTitle = `${v.title} — open investigation`;
   const description = snippet(v.allegation, 155);
   return {
     title,
@@ -32,7 +36,7 @@ export async function generateMetadata({ params }: { params: Params }): Promise<
     openGraph: {
       type: 'article',
       url: `${SITE_URL}/investigations/${v.id}`,
-      title,
+      title: ogTitle,
       description,
       publishedTime: new Date(v.opened_date).toISOString(),
       modifiedTime: v.updated_date ? new Date(v.updated_date).toISOString() : undefined,
