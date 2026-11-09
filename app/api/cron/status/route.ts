@@ -73,8 +73,10 @@ async function fetchEntries(docketId: number): Promise<{ entries: DocketEntry[];
     while (url && out.length < MAX_ENTRIES && pages < 3) {
       const r = await clGet(url);
       if (!r.ok) {
-        if (r.status === 401 || r.status === 403) entriesEndpointAllowed = false;
-        break;
+        if (r.status === 401 || r.status === 403) { entriesEndpointAllowed = false; break; }
+        // Any other failure (rate limit, outage) must not be mistaken for an
+        // empty docket. Fail this case; it stays unchanged and is retried later.
+        throw new Error(`docket entries ${r.status}`);
       }
       entriesEndpointAllowed = true;
       for (const e of r.data?.results ?? []) {
@@ -92,7 +94,7 @@ async function fetchEntries(docketId: number): Promise<{ entries: DocketEntry[];
   const seen = new Set<string>();
   while (url && out.length < MAX_ENTRIES && pages < 6) {
     const r = await clGet(url);
-    if (!r.ok) break;
+    if (!r.ok) throw new Error(`docket search ${r.status}`);
     for (const d of r.data?.results ?? []) {
       const text = String(d.description || d.short_description || '');
       const date = d.entry_date_filed ?? d.dateFiled ?? null;
