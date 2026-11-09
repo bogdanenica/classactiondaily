@@ -4,7 +4,7 @@ import JsonLd from '../components/JsonLd';
 import { SITE_URL, SITE_NAME, OWNER, OWNER_ADDRESS_LINE } from '../lib/site';
 
 export const metadata: Metadata = {
-  title: 'About ClassActionDaily — who runs it and how it works',
+  title: { absolute: 'About ClassActionDaily: who runs it and how it works' },
   description: `ClassActionDaily is published by ${OWNER.firm} (${OWNER.name}, Florida Bar No. ${OWNER.barFlorida}). Learn how we source, summarize, and publish newly filed consumer class actions from CourtListener.`,
   alternates: { canonical: '/about' },
 };
@@ -54,7 +54,7 @@ export default function About() {
 
       <H2 id="how">How it works</H2>
       <P>
-        The site has two distinct sections. <strong>Latest Cases</strong> are filed complaints pulled automatically each morning from CourtListener — a free public-records database maintained by the non-profit Free Law Project — for putative class actions in consumer-protection categories. We extract the docket information and generate a readable summary using an AI language model. Cases are published automatically, without attorney review, so that they appear within hours of filing.
+        The site has two distinct sections. <strong>Latest Cases</strong> are filed complaints pulled automatically each morning from CourtListener, a free public-records database maintained by the non-profit Free Law Project, for putative class actions in consumer-protection categories. We extract the docket information and generate a readable summary using an AI language model. Cases are published automatically, without attorney review, so that they appear within hours of filing.
       </P>
       <P>
         <strong>Investigations</strong> are different: they are editorially curated, pre-litigation inquiries where attorneys are evaluating whether a class action can be brought. No suit has been filed. Investigations appear and update only when a lawyer at {OWNER.firm} opens one. Submissions help determine whether a case is viable.
@@ -62,7 +62,7 @@ export default function About() {
 
       <H2 id="accuracy">Accuracy and limitations</H2>
       <P>
-        Because case summaries are machine-generated from the docket text, they can contain mistakes — a mis-identified defendant, a mischaracterized claim, or a stale status. Every case page links to the original CourtListener docket entry, which is the authoritative source. If you spot an error, please <Link href="/contact">tell us</Link> and we will correct or remove the entry.
+        Because case summaries are machine-generated from the docket text, they can contain mistakes: a mis-identified defendant, a mischaracterized claim, or a stale status. Every case page links to the original CourtListener docket entry, which is the authoritative source. If you spot an error, please <Link href="/contact">tell us</Link> and we will correct or remove the entry.
       </P>
       <P>
         The inclusion of a company on this site means only that a complaint naming it was filed in federal court. A complaint contains unproven allegations. It does not mean the company did anything wrong, and nothing on this site should be read as a statement that it did.

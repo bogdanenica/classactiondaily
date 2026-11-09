@@ -5,8 +5,8 @@ import {
 } from '@/app/lib/investigationDrafts';
 
 // Daily "scout" job: proposes new investigations as DRAFTS for attorney review.
-//   Part A  — Milberg filing trends on CourtListener (3+ filings, same cause of action, last 30 days)
-//   Part B  — new investigation pages on ClassAction.org (via their sitemap)
+//   Part A: Milberg filing trends on CourtListener (3+ filings, same cause of action, last 30 days)
+//   Part B: new investigation pages on ClassAction.org (via their sitemap)
 //
 // Runs from vercel.json. Manual trigger (replace KEY with CRON_SECRET):
 //   https://www.classactiondaily.com/api/cron/scout?key=KEY
@@ -55,7 +55,7 @@ export async function GET(request: Request) {
 }
 
 // ---------------------------------------------------------------------------
-// Part A — Milberg filing trends
+// Part A: Milberg filing trends
 // ---------------------------------------------------------------------------
 
 type Filing = {
@@ -73,7 +73,7 @@ type Filing = {
 function firmMatches(r: any): boolean {
   const firms: string[] = Array.isArray(r.firm) ? r.firm : [];
   // When CourtListener knows the firms of record, trust that list. (Spellings
-  // vary — "Milberg, PLLC", "Millberg, Pllc", "MILBERG PLLC Atlanta" — so match
+  // vary ("Milberg, PLLC", "Millberg, Pllc", "MILBERG PLLC Atlanta"), so match
   // on fragments.) This keeps out other firms' cases that merely mention the
   // watched firm somewhere in an exhibit.
   if (firms.length > 0) {
@@ -156,7 +156,7 @@ async function scoutMilberg(dry: boolean, started: number) {
     if (unseen.length === 0) { report.push({ cause: key, filings: fs.length, action: 'no new filings' }); continue; }
 
     const list = fs
-      .map((f, i) => `${i + 1}. [docket ${f.docket_id}] ${f.caseName} — ${f.court}, filed ${f.dateFiled}. Cause: ${f.cause || '—'}. Nature of suit: ${f.suitNature || '—'}. Parties: ${f.parties.slice(0, 4).join('; ')}. First entry: ${f.description}`)
+      .map((f, i) => `${i + 1}. [docket ${f.docket_id}] ${f.caseName}, ${f.court}, filed ${f.dateFiled}. Cause: ${f.cause || 'none'}. Nature of suit: ${f.suitNature || 'none'}. Parties: ${f.parties.slice(0, 4).join('; ')}. First entry: ${f.description}`)
       .join('\n');
 
     const prompt = `You help a consumer law firm decide whether a cluster of newly filed federal class actions points to a pattern worth opening an investigation on.
@@ -165,9 +165,9 @@ All ${fs.length} filings below were brought in the last ${WINDOW_DAYS} days unde
 
 ${list}
 
-Step 1 — Decide whether these filings share a COHERENT theory a consumer would recognize: the same defendant, the same product or service type, or the same specific statutory claim (e.g. FDCPA collection letters, ERISA forfeiture, BIPA biometrics, data breach, "natural" labeling). Three unrelated personal-injury suits that merely share a cover-sheet code are NOT coherent.
+Step 1: Decide whether these filings share a COHERENT theory a consumer would recognize: the same defendant, the same product or service type, or the same specific statutory claim (e.g. FDCPA collection letters, ERISA forfeiture, BIPA biometrics, data breach, "natural" labeling). Three unrelated personal-injury suits that merely share a cover-sheet code are NOT coherent.
 
-Step 2 — If there is one or more coherent theme with at least ${MIN_FILINGS} filings each, write an investigation for each theme. Otherwise skip.
+Step 2: If there is one or more coherent theme with at least ${MIN_FILINGS} filings each, write an investigation for each theme. Otherwise skip.
 
 ${DRAFT_STYLE_RULES}
 In "why_matters", mention that at least N putative class actions were filed in federal courts in the recent period and what they allege, without naming law firms.
@@ -220,7 +220,7 @@ Respond with ONLY JSON:
 }
 
 // ---------------------------------------------------------------------------
-// Part B — ClassAction.org watch (via sitemap)
+// Part B: ClassAction.org watch (via sitemap)
 // ---------------------------------------------------------------------------
 
 const CA_SOURCE = 'classaction.org';
@@ -255,7 +255,7 @@ function htmlToText(html: string): string {
     .replace(/<\/(p|div|li|h[1-6]|tr|br|section|article)>/gi, '\n')
     .replace(/<[^>]+>/g, ' ')
     .replace(/&nbsp;/g, ' ').replace(/&amp;/g, '&').replace(/&quot;/g, '"').replace(/&#39;|&rsquo;|&lsquo;/g, "'")
-    .replace(/&ldquo;|&rdquo;/g, '"').replace(/&mdash;/g, '—').replace(/&ndash;/g, '–').replace(/&[a-z]+;/gi, ' ')
+    .replace(/&ldquo;|&rdquo;/g, '"').replace(/&mdash;|&ndash;/g, ', ').replace(/&[a-z]+;/gi, ' ')
     .replace(/[ \t]+/g, ' ').replace(/\n\s*\n+/g, '\n').trim();
 }
 
@@ -297,7 +297,7 @@ async function scoutClassActionOrg(dry: boolean, started: number) {
 Page title: ${title}
 Page URL: ${e.url}
 
-PAGE TEXT (for understanding the topic only — do not copy any sentence from it):
+PAGE TEXT (for understanding the topic only; do not copy any sentence from it):
 """
 ${text}
 """

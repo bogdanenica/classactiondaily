@@ -5,7 +5,7 @@ import Link from 'next/link';
 export const revalidate = 3600;
 
 export const metadata: Metadata = {
-  title: 'Defendants — companies named in recent consumer class actions',
+  title: 'Defendants in recent class actions',
   description: 'Companies named in consumer class action complaints filed in U.S. federal courts, ranked by number of cases tracked. Updated daily from CourtListener.',
   alternates: { canonical: '/defendants' },
 };

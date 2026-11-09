@@ -4,7 +4,7 @@ import { sendEmail, esc } from './email';
 import { SITE_URL, SITE_NAME, OWNER } from './site';
 
 // Shared plumbing for machine-proposed investigations. Everything created here
-// lands as status = 'draft' — invisible to the public until approved in /admin.
+// lands as status = 'draft', invisible to the public until approved in /admin.
 
 const sql = neon(process.env.DATABASE_URL!);
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY! });
@@ -85,7 +85,7 @@ export async function notifyDraft(id: number, fields: DraftFields, meta: { sourc
   const sourceLabel = meta.source === 'milberg' ? 'Milberg filing trend' : meta.source === 'classaction.org' ? 'New on ClassAction.org' : meta.source;
 
   const evidenceText = meta.evidence
-    .map((e) => `• ${e.label}${e.date ? ` (${e.date})` : ''}${e.url ? ` — ${e.url}` : ''}${e.detail ? `\n    ${e.detail}` : ''}`)
+    .map((e) => `• ${e.label}${e.date ? ` (${e.date})` : ''}${e.url ? `: ${e.url}` : ''}${e.detail ? `\n    ${e.detail}` : ''}`)
     .join('\n');
   const evidenceHtml = meta.evidence
     .map((e) => `<li>${e.url ? `<a href="${esc(e.url)}">${esc(e.label)}</a>` : esc(e.label)}${e.date ? ` <span style="color:#666">(${esc(e.date)})</span>` : ''}${e.detail ? `<div style="color:#444;font-size:13px;margin-top:2px">${esc(e.detail)}</div>` : ''}</li>`)
@@ -98,7 +98,7 @@ export async function notifyDraft(id: number, fields: DraftFields, meta: { sourc
     subject: `Draft investigation to review: ${fields.title}`,
     text:
       `A new investigation draft is waiting for your review on ${SITE_NAME}.\n` +
-      `Source: ${sourceLabel}${meta.sourceUrl ? ` — ${meta.sourceUrl}` : ''}\n\n` +
+      `Source: ${sourceLabel}${meta.sourceUrl ? `: ${meta.sourceUrl}` : ''}\n\n` +
       `TITLE\n${fields.title}\n\nDEFENDANT / PRODUCTS\n${fields.defendant}\n\nCATEGORY\n${fields.category}\n\n` +
       `THE ALLEGATION\n${fields.allegation}\n\nWHO MAY BE AFFECTED\n${fields.affected}\n\nWHY THIS MATTERS\n${fields.why_matters}\n\n` +
       `EVIDENCE\n${evidenceText}\n\n` +
@@ -141,7 +141,8 @@ Writing rules (these appear on a law-firm website and are attorney advertising):
 - Do not name plaintiffs' law firms or individual plaintiffs.
 - Do not copy sentences from any source; write original text.
 - Title must be a question addressed to the reader, under 110 characters, e.g. "Did you receive debt-collection letters from X after disputing the debt?"
-- "defendant" is the company, product line, or practice under investigation — generic if no single company.
+- "defendant" is the company, product line, or practice under investigation; generic if no single company.
 - "category" must be exactly one of: ${INVESTIGATION_CATEGORIES.join(' | ')}.
-- allegation: 2–4 sentences. affected: 2–3 sentences describing who might qualify. why_matters: 2–4 sentences grounded in the facts provided (filings, recalls, studies, regulatory actions).
+- allegation: 2 to 4 sentences. affected: 2 to 3 sentences describing who might qualify. why_matters: 2 to 4 sentences grounded in the facts provided (filings, recalls, studies, regulatory actions).
+- Never use em-dashes or en-dashes in any field.
 `;

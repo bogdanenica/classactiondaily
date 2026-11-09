@@ -26,8 +26,8 @@ export async function generateMetadata({ params }: { params: Params }): Promise<
   const { id } = await params;
   const v = await getInvestigation(id);
   if (!v) return { title: 'Investigation not found' };
-  const title = fitTitle(`${v.title} — open investigation`, `${v.title} — investigation`, v.title);
-  const ogTitle = `${v.title} — open investigation`;
+  const title = fitTitle(`${v.title}: open investigation`, `${v.title}: investigation`, v.title);
+  const ogTitle = `${v.title}: open investigation`;
   const description = snippet(v.allegation, 155);
   return {
     title,

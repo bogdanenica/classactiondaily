@@ -7,6 +7,14 @@
     {
       "path": "/api/cron/scout",
       "schedule": "0 13 * * *"
+    },
+    {
+      "path": "/api/cron/status",
+      "schedule": "0 8 * 1,7 *"
+    },
+    {
+      "path": "/api/cron/newsletter",
+      "schedule": "0 15 1 * *"
     }
   ]
 }

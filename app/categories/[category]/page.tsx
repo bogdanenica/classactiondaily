@@ -20,10 +20,10 @@ const INTROS: Record<string, string> = {
   'Food & beverage': 'Lawsuits over food and drink labeling, ingredient claims, "natural" and "healthy" marketing, contamination, and package sizing.',
   'Consumer electronics': 'Lawsuits over defective devices, battery and performance problems, misleading specifications, and warranty practices.',
   'Subscription services': 'Lawsuits over automatic renewals, hard-to-cancel plans, dark-pattern checkout flows, and undisclosed recurring charges.',
-  'Personal care': 'Lawsuits over cosmetics, skincare, supplements, and hygiene products — ingredient claims, "clean" marketing, and safety.',
+  'Personal care': 'Lawsuits over cosmetics, skincare, supplements, and hygiene products: ingredient claims, "clean" marketing, and safety.',
   'Automotive': 'Lawsuits over vehicle defects, misleading feature claims, dealer practices, and warranty disputes.',
   'Retail': 'Lawsuits against retailers over pricing, accessibility, data practices, and sales tactics.',
-  'Apparel': 'Lawsuits over clothing and footwear — pricing claims, fabric and origin labeling, and accessibility.',
+  'Apparel': 'Lawsuits over clothing and footwear: pricing claims, fabric and origin labeling, and accessibility.',
   'Financial products': 'Lawsuits over lending, debt collection, securities, banking fees, and other financial services.',
   'Home appliances': 'Lawsuits over appliance defects, energy and performance claims, and recalls.',
   'Other': 'Consumer class actions that do not fit the other categories.',
@@ -36,7 +36,7 @@ export async function generateMetadata({ params }: { params: Params }): Promise<
   const countRows = await sql`SELECT COUNT(*)::int AS n FROM cases WHERE category = ${category}`;
   const n = countRows[0]?.n ?? 0;
   return {
-    title: `${category} class actions — ${n} filed in U.S. federal courts`,
+    title: `${category} class actions (${n})`,
     description: `${INTROS[category] ?? ''} ${n} consumer class actions tracked, updated daily from CourtListener.`.trim(),
     alternates: { canonical: `/categories/${slug}` },
   };

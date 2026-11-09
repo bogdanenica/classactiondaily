@@ -6,7 +6,7 @@ import { OWNER, formatDate } from '../lib/site';
 export const revalidate = 3600;
 
 export const metadata: Metadata = {
-  title: 'Open investigations — potential class actions under review',
+  title: 'Open class action investigations',
   description: `Pre-litigation consumer investigations curated by attorneys at ${OWNER.firm}. No lawsuit has been filed yet; if you were affected, your information helps determine whether a case can be brought.`,
   alternates: { canonical: '/investigations' },
 };
@@ -27,7 +27,7 @@ export default async function InvestigationsIndex() {
         <div className="hero-inner">
           <div className="inv-status">Open Investigations</div>
           <h1>Are you affected by one of these?</h1>
-          <p>Attorneys are investigating potential class actions against the companies and products listed below. These are pre-litigation — no lawsuit has been filed yet. If you&apos;ve been affected, your information helps determine whether a case can be brought.</p>
+          <p>Attorneys are investigating potential class actions against the companies and products listed below. These are pre-litigation: no lawsuit has been filed yet. If you&apos;ve been affected, your information helps determine whether a case can be brought.</p>
           <div className="hero-meta">
             <span><strong>{investigations.length}</strong> open investigations</span>
             <span>Curated by attorneys at {OWNER.firm}</span>

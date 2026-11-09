@@ -4,7 +4,7 @@ import JsonLd from '../components/JsonLd';
 import { SITE_URL, SITE_NAME, OWNER, OWNER_ADDRESS_LINE } from '../lib/site';
 
 export const metadata: Metadata = {
-  title: 'Contact ClassActionDaily / Access Law Group',
+  title: { absolute: 'Contact ClassActionDaily | Access Law Group' },
   description: `Contact ${OWNER.firm}, publisher of ${SITE_NAME}. ${OWNER_ADDRESS_LINE}. Phone ${OWNER.phoneDisplay}. Email ${OWNER.email}. Corrections, removal requests, and case inquiries.`,
   alternates: { canonical: '/contact' },
 };
@@ -79,7 +79,7 @@ export default function Contact() {
 
       <h2 style={{ fontSize: 18, marginTop: 28, marginBottom: 8 }}>About a case you were affected by</h2>
       <p style={{ color: 'var(--ink-soft)', maxWidth: 680 }}>
-        The fastest route is the form on the individual case or investigation page — it captures the details we need to evaluate your situation. You can also email or call. Please do not send confidential or time-sensitive information until a lawyer has confirmed in writing that the firm represents you; see our <Link href="/terms">terms of use</Link>.
+        The fastest route is the form on the individual case or investigation page; it captures the details we need to evaluate your situation. You can also email or call. Please do not send confidential or time-sensitive information until a lawyer has confirmed in writing that the firm represents you; see our <Link href="/terms">terms of use</Link>.
       </p>
 
       <p style={{ fontSize: 13, color: 'var(--ink-muted)', maxWidth: 680, marginTop: 28, borderTop: '1px solid var(--border)', paddingTop: 12 }}>
