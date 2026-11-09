@@ -22,7 +22,8 @@ const sql = neon(process.env.DATABASE_URL!);
 
 const RECHECK_DAYS = 150;
 const TIME_BUDGET_MS = 240_000;
-const CONCURRENCY = 3;
+const CONCURRENCY = 2;
+const MIN_GAP_MS = 400; // at most ~2.5 requests a second
 const MAX_ENTRIES = 200;
 const CL = 'https://www.courtlistener.com/api/rest/v4';
 
@@ -30,17 +31,31 @@ function clHeaders(): Record<string, string> {
   return { Authorization: `Token ${process.env.COURTLISTENER_TOKEN}` };
 }
 
+// CourtListener throttles bursts. Space requests out, and when it answers 429
+// wait as long as it asks (Retry-After) before trying again.
+let lastCall = 0;
+async function pace() {
+  const wait = lastCall + MIN_GAP_MS - Date.now();
+  lastCall = Math.max(Date.now(), lastCall + MIN_GAP_MS);
+  if (wait > 0) await new Promise((r) => setTimeout(r, wait));
+}
+
 async function clGet(url: string): Promise<{ ok: boolean; status: number; data: any }> {
-  for (let attempt = 1; attempt <= 3; attempt++) {
+  let status = 0;
+  for (let attempt = 1; attempt <= 5; attempt++) {
+    await pace();
     const res = await fetch(url, { headers: clHeaders(), cache: 'no-store' });
+    status = res.status;
     if (res.status === 429 || res.status >= 500) {
-      await new Promise((r) => setTimeout(r, 1500 * attempt));
+      const ra = parseInt(res.headers.get('retry-after') || '', 10);
+      const waitMs = Math.min(Number.isFinite(ra) && ra > 0 ? ra * 1000 : 2000 * attempt, 20_000);
+      await new Promise((r) => setTimeout(r, waitMs));
       continue;
     }
     const data = res.ok ? await res.json().catch(() => null) : null;
     return { ok: res.ok, status: res.status, data };
   }
-  return { ok: false, status: 429, data: null };
+  return { ok: false, status, data: null };
 }
 
 // Docket entries can come from two places. The docket-entries endpoint is the
@@ -107,6 +122,11 @@ async function checkOne(c: any) {
     terminated,
     entries: entries.length,
     via,
+    latest: entries
+      .slice()
+      .sort((x, y) => String(y.date ?? '').localeCompare(String(x.date ?? '')))
+      .slice(0, 5)
+      .map((e) => `${e.date ?? '?'}: ${e.text.replace(/\s+/g, ' ').slice(0, 110)}`),
   };
 }
 
@@ -167,6 +187,7 @@ export async function GET(request: Request) {
             WHERE id = ${c.id}`;
           updated++;
         }
+        if (!dry) delete r.latest;
         if (dry || results.length < 40) results.push(r);
       } catch (err: any) {
         errors++;
