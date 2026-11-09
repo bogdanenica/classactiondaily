@@ -4,7 +4,7 @@ import JsonLd from '../components/JsonLd';
 import { SITE_NAME, SITE_URL, OWNER } from '../lib/site';
 
 export const metadata: Metadata = {
-  title: 'FAQ — how class actions work and how to use this site',
+  title: 'FAQ: how class actions work',
   description: 'Plain-English answers: what a class action is, how to tell if you qualify, whether it costs anything, what happens after you submit a form, how long cases take, and where our data comes from.',
   alternates: { canonical: '/faq' },
 };
@@ -14,13 +14,13 @@ export const metadata: Metadata = {
 const FAQS: { q: string; a: React.ReactNode; plain: string }[] = [
   {
     q: 'What is a class action?',
-    plain: 'A class action is a lawsuit in which one or a few named plaintiffs sue on behalf of a larger group of people — the "class" — who were harmed in the same way by the same conduct. It lets many small, similar claims be resolved together when it would be impractical for each person to sue individually.',
-    a: <>A class action is a lawsuit in which one or a few named plaintiffs sue on behalf of a larger group of people — the &ldquo;class&rdquo; — who were harmed in the same way by the same conduct. It lets many small, similar claims (a mislabeled product, an unauthorized fee, a data breach) be resolved together when it would be impractical for each person to sue individually.</>,
+    plain: 'A class action is a lawsuit in which one or a few named plaintiffs sue on behalf of a larger group of people (the "class") who were harmed in the same way by the same conduct. It lets many small, similar claims be resolved together when it would be impractical for each person to sue individually.',
+    a: <>A class action is a lawsuit in which one or a few named plaintiffs sue on behalf of a larger group of people (the &ldquo;class&rdquo;) who were harmed in the same way by the same conduct. It lets many small, similar claims (a mislabeled product, an unauthorized fee, a data breach) be resolved together when it would be impractical for each person to sue individually.</>,
   },
   {
     q: 'How do I know if I am part of a class?',
-    plain: 'You are a potential class member if you fit the class definition in the complaint — for example, everyone who bought a specific product in a specific period. Nothing is final until the court certifies the class and defines it. The case summary on each page describes the proposed class; the full complaint on CourtListener has the exact definition.',
-    a: <>You are a potential class member if you fit the class definition in the complaint — for example, &ldquo;everyone who bought Product X in the United States between 2022 and 2026.&rdquo; Nothing is final until the court certifies the class and defines it. Each case page summarizes the proposed class; the full complaint (linked on every case page) has the exact wording.</>,
+    plain: 'You are a potential class member if you fit the class definition in the complaint: for example, everyone who bought a specific product in a specific period. Nothing is final until the court certifies the class and defines it. The case summary on each page describes the proposed class; the full complaint on CourtListener has the exact definition.',
+    a: <>You are a potential class member if you fit the class definition in the complaint: for example, &ldquo;everyone who bought Product X in the United States between 2022 and 2026.&rdquo; Nothing is final until the court certifies the class and defines it. Each case page summarizes the proposed class; the full complaint (linked on every case page) has the exact wording.</>,
   },
   {
     q: 'Does it cost anything to contact you or to join a class action?',
@@ -29,13 +29,13 @@ const FAQS: { q: string; a: React.ReactNode; plain: string }[] = [
   },
   {
     q: 'What happens after I submit a form?',
-    plain: `Your submission goes to ${OWNER.firm}. A lawyer or staff member reviews it and, if it looks like you may have a claim, contacts you — usually by email or phone within a few business days. Depending on the matter and your state, we may refer you to co-counsel. Submitting a form does not make you a client; that only happens if you sign a written engagement agreement.`,
-    a: <>Your submission goes to {OWNER.firm}. A lawyer or staff member reviews it and, if it looks like you may have a claim, contacts you — usually by email or phone within a few business days. Depending on the matter and your state, we may refer you to co-counsel. Submitting a form does <strong>not</strong> make you a client; that only happens if you sign a written engagement agreement. See our <Link href="/privacy">privacy policy</Link> for how your information is handled.</>,
+    plain: `Your submission goes to ${OWNER.firm}. An attorney reviews it and, if it looks like we may be able to help, may contact you by email or phone within 30 days. We receive more messages than we can answer individually, so you may not hear from us at all; if 30 days pass without a reply, assume we are not able to take your matter. Depending on the matter and your state, we may refer you to co-counsel. Submitting a form does not make you a client; that only happens if you sign a written engagement agreement.`,
+    a: <>Your submission goes to {OWNER.firm}. An attorney reviews it and, if it looks like we may be able to help, may contact you by email or phone within 30 days. We receive more messages than we can answer individually, so you may not hear from us at all; if 30 days pass without a reply, assume we are not able to take your matter. Depending on the matter and your state, we may refer you to co-counsel. Submitting a form does <strong>not</strong> make you a client; that only happens if you sign a written engagement agreement. See our <Link href="/privacy">privacy policy</Link> for how your information is handled.</>,
   },
   {
     q: 'How long does a class action take?',
-    plain: 'Usually years. After a complaint is filed, the defendant responds, the parties exchange evidence, and the court decides whether to certify the class — often 12 to 24 months in. Settlement or trial can take longer. If the case settles, class members are notified and given a way to claim their share.',
-    a: <>Usually years. After a complaint is filed, the defendant responds, the parties exchange evidence (&ldquo;discovery&rdquo;), and the court decides whether to certify the class — often 12 to 24 months in. Settlement or trial can take longer still. If the case settles, class members are notified by mail, email, or public notice and given a way to claim their share.</>,
+    plain: 'Usually years. After a complaint is filed, the defendant responds, the parties exchange evidence, and the court decides whether to certify the class, often 12 to 24 months in. Settlement or trial can take longer. If the case settles, class members are notified and given a way to claim their share.',
+    a: <>Usually years. After a complaint is filed, the defendant responds, the parties exchange evidence (&ldquo;discovery&rdquo;), and the court decides whether to certify the class, often 12 to 24 months in. Settlement or trial can take longer still. If the case settles, class members are notified by mail, email, or public notice and given a way to claim their share.</>,
   },
   {
     q: 'Do I need to do anything to be included?',
@@ -50,7 +50,7 @@ const FAQS: { q: string; a: React.ReactNode; plain: string }[] = [
   {
     q: 'Are the summaries reviewed by a lawyer?',
     plain: 'No. Summaries are generated automatically so that cases appear within hours of filing, and they can contain errors. The court record is the authoritative source. Investigations, by contrast, are written and curated by attorneys.',
-    a: <>No. Summaries are generated automatically so that cases appear within hours of filing, and they can contain errors — a mis-named defendant, a mischaracterized claim. The court record is the authoritative source. <strong>Investigations</strong>, by contrast, are written and curated by attorneys at {OWNER.firm}. See <Link href="/about#accuracy">accuracy and limitations</Link>.</>,
+    a: <>No. Summaries are generated automatically so that cases appear within hours of filing, and they can contain errors: a mis-named defendant, a mischaracterized claim. The court record is the authoritative source. <strong>Investigations</strong>, by contrast, are written and curated by attorneys at {OWNER.firm}. See <Link href="/about#accuracy">accuracy and limitations</Link>.</>,
   },
   {
     q: 'A company I am involved with is listed here. Does that mean it did something wrong?',

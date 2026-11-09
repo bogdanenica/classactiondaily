@@ -3,6 +3,10 @@
 import { useRef, useState } from 'react';
 import { US_STATES } from '../lib/states';
 
+// Whether the newsletter box starts checked. Flip to false to make sign-up a
+// deliberate opt-in.
+const NEWSLETTER_DEFAULT_CHECKED = true;
+
 type Props = {
   caseId?: number;
   investigationId?: number;
@@ -46,7 +50,8 @@ export default function IntakeForm({ caseId, investigationId, productHint }: Pro
       state: form.get('state'),
       description: form.get('description'),
       consent: form.get('consent') === 'on',
-      website: form.get('website'), // honeypot — humans never see this field
+      newsletter: form.get('newsletter') === 'on',
+      website: form.get('website'), // honeypot: humans never see this field
       startedAt: startedAt.current,
     };
 
@@ -78,7 +83,7 @@ export default function IntakeForm({ caseId, investigationId, productHint }: Pro
       <div className="intake">
         <h2>Thank you</h2>
         <div className="success">
-          Your submission has been received. We have sent a confirmation to your email address — if you don&apos;t see it within a few minutes, check your spam folder. An attorney will review your information and may contact you within 5 business days. There is no obligation.
+          Your message has been received. We have sent a confirmation to your email address. If you don&apos;t see it within a few minutes, check your spam folder. An attorney will review your message and may contact you within the next 30 days. We cannot respond to everyone, so you may not hear from us at all. There is no obligation.
         </div>
       </div>
     );
@@ -119,6 +124,13 @@ export default function IntakeForm({ caseId, investigationId, productHint }: Pro
           <input id="consent" name="consent" type="checkbox" required />
           <label htmlFor="consent">
             I consent to be contacted by an attorney about my potential claim. Submitting this form does not create an attorney-client relationship.
+          </label>
+        </div>
+
+        <div className="consent">
+          <input id="newsletter" name="newsletter" type="checkbox" defaultChecked={NEWSLETTER_DEFAULT_CHECKED} />
+          <label htmlFor="newsletter">
+            Send me a monthly email about new investigations. Unsubscribe at any time.
           </label>
         </div>
 

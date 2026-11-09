@@ -39,6 +39,7 @@ export default function Privacy() {
       <H2>2. How we use it</H2>
       <UL>
         <li>To evaluate whether you may have a claim in a case or investigation listed on the Site, and to contact you about it.</li>
+        <li>If you leave the newsletter box checked on a form, to send you a monthly email about new investigations. Every issue has an unsubscribe link, and unsubscribing does not affect your submission.</li>
         <li>To respond to correction, removal, and other inquiries.</li>
         <li>To operate, secure, troubleshoot, and improve the Site.</li>
         <li>To comply with legal and professional-responsibility obligations.</li>
@@ -47,14 +48,14 @@ export default function Privacy() {
 
       <H2>3. Who we share it with</H2>
       <P><strong>Co-counsel and referral firms.</strong> Depending on the subject matter and the state where you live, we may share your intake submission with another law firm that is handling, or evaluating, the matter you wrote about. We share only what is needed to evaluate your potential claim. Those firms are bound by their own professional obligations of confidentiality.</P>
-      <P><strong>Service providers.</strong> We use Vercel (hosting and serverless functions) and Neon (database hosting) to run the Site. They process data on our behalf under their own privacy and security commitments. Intake submissions are stored in our database; they are not sent to AI providers. (The case summaries on the Site are generated from public court records only.)</P>
+      <P><strong>Service providers.</strong> We use Vercel (hosting and serverless functions), Neon (database hosting), and Resend (email delivery, for confirmation emails and the monthly newsletter) to run the Site. They process data on our behalf under their own privacy and security commitments. Intake submissions are stored in our database; they are not sent to AI providers. (The case summaries on the Site are generated from public court records only.)</P>
       <P><strong>Legal requirements.</strong> We may disclose information if required by law, subpoena, or court order, or to protect our rights, your safety, or the safety of others.</P>
 
       <H2>4. Attorney-client relationship and confidentiality</H2>
       <P>Submitting a form or contacting us does <strong>not</strong> create an attorney-client relationship. Until a lawyer has agreed in writing to represent you, information you send may not be protected by the attorney-client privilege. We treat intake submissions as confidential as a matter of practice, but you should not send sensitive or time-critical information before representation is confirmed.</P>
 
       <H2>5. How long we keep it</H2>
-      <P>We keep intake submissions for as long as reasonably necessary to evaluate the potential claim and, if we or a co-counsel firm take on the matter, for as long as professional rules require. Submissions that do not lead to representation are deleted or anonymized within 24 months unless you ask us to keep or delete them sooner. Server logs are retained by our hosting provider on a rolling basis, typically no longer than 30 days.</P>
+      <P>We keep intake submissions for as long as reasonably necessary to evaluate the potential claim and, if we or a co-counsel firm take on the matter, for as long as professional rules require. Submissions that do not lead to representation are deleted or anonymized within 24 months unless you ask us to keep or delete them sooner. If you subscribed to the monthly email, we keep your email address on that list until you unsubscribe. Server logs are retained by our hosting provider on a rolling basis, typically no longer than 30 days.</P>
 
       <H2>6. Your choices and rights</H2>
       <P>You can ask us at any time to see, correct, or delete the personal information we hold about you, or to stop contacting you. Email <a href={`mailto:${OWNER.email}?subject=Privacy%20request`}>{OWNER.email}</a> with your request; we will respond within 30 days and may ask you to verify your identity first.</P>

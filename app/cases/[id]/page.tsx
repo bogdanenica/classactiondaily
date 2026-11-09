@@ -4,7 +4,8 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import IntakeForm from '../../components/IntakeForm';
 import JsonLd from '../../components/JsonLd';
-import { SITE_URL, SITE_NAME, OWNER, categorySlug, snippet, formatDate } from '../../lib/site';
+import { SITE_URL, SITE_NAME, OWNER, categorySlug, snippet, formatDate, caseTitle } from '../../lib/site';
+import { asStatus, STATUS_SENTENCE, STATUS_LABEL } from '../../lib/caseStatus';
 
 export const revalidate = 3600;
 
@@ -16,21 +17,22 @@ async function getCase(idRaw: string) {
   const caseId = parseInt(idRaw, 10);
   if (isNaN(caseId)) return null;
   const rows = await sql`
-    SELECT id, case_name, defendant, court_name, court_id, docket_number,
-           date_filed, category, allegation_type, summary, raw_complaint_url, image_url, created_at
+    SELECT *
     FROM cases WHERE id = ${caseId}
   `;
   return rows[0] ?? null;
 }
 
-// Per-page <title>, <meta description>, canonical, and Open Graph — this is
+// Per-page <title>, <meta description>, canonical, and Open Graph. This is
 // what lets Google rank each case for its own case name / defendant.
 export async function generateMetadata({ params }: { params: Params }): Promise<Metadata> {
   const { id } = await params;
   const c = await getCase(id);
   if (!c) return { title: 'Case not found' };
 
-  const title = `${c.case_name} — ${c.defendant} class action`;
+  const title = caseTitle(c.case_name, c.defendant);
+  // Social cards have more room, so they get the descriptive version.
+  const ogTitle = `${c.case_name}: ${c.defendant} class action`;
   const description = snippet(c.summary, 155);
   const url = `${SITE_URL}/cases/${c.id}`;
 
@@ -41,7 +43,7 @@ export async function generateMetadata({ params }: { params: Params }): Promise<
     openGraph: {
       type: 'article',
       url,
-      title,
+      title: ogTitle,
       description,
       siteName: SITE_NAME,
       publishedTime: new Date(c.date_filed).toISOString(),
@@ -49,7 +51,7 @@ export async function generateMetadata({ params }: { params: Params }): Promise<
     },
     twitter: {
       card: c.image_url ? 'summary_large_image' : 'summary',
-      title,
+      title: ogTitle,
       description,
       images: c.image_url ? [c.image_url] : undefined,
     },
@@ -65,6 +67,14 @@ export default async function CaseDetail({ params }: { params: Params }) {
   const isNew = new Date(c.date_filed).toISOString().split('T')[0] === today;
   const url = `${SITE_URL}/cases/${c.id}`;
 
+  // Status comes from the twice-yearly docket re-check (app/api/cron/status).
+  // Until a case has been checked, it shows the as-filed default.
+  const status = asStatus(c.status);
+  const checkedAt: Date | null = c.status_checked_at ? new Date(c.status_checked_at) : null;
+  const docketLink = c.raw_complaint_url
+    ? <a href={c.raw_complaint_url} target="_blank" rel="noopener noreferrer">court docket</a>
+    : <>court docket</>;
+
   const articleSchema = {
     '@context': 'https://schema.org',
     '@type': 'NewsArticle',
@@ -74,7 +84,7 @@ export default async function CaseDetail({ params }: { params: Params }) {
     description: snippet(c.summary, 200),
     image: c.image_url ? [c.image_url] : undefined,
     datePublished: new Date(c.created_at ?? c.date_filed).toISOString(),
-    dateModified: new Date(c.created_at ?? c.date_filed).toISOString(),
+    dateModified: new Date(c.status_checked_at ?? c.created_at ?? c.date_filed).toISOString(),
     author: { '@type': 'Organization', name: SITE_NAME, url: SITE_URL },
     publisher: { '@id': `${SITE_URL}/#organization` },
     about: {
@@ -126,7 +136,7 @@ export default async function CaseDetail({ params }: { params: Params }) {
             <div className="docket-cell">Court<strong>{c.court_name}</strong></div>
             <div className="docket-cell">Case Number<strong>{c.docket_number}</strong></div>
             <div className="docket-cell">Filed<strong><time dateTime={new Date(c.date_filed).toISOString().split('T')[0]}>{formatDate(c.date_filed)}</time></strong></div>
-            <div className="docket-cell">Status<strong>Pending</strong></div>
+            <div className="docket-cell">Status<strong>{STATUS_LABEL[status]}</strong></div>
           </div>
         </div>
 
@@ -142,8 +152,15 @@ export default async function CaseDetail({ params }: { params: Params }) {
             <h2>What this case is about</h2>
             <p>{c.summary}</p>
 
-            <h2>What happens next</h2>
-            <p>The case is in its earliest stage. The defendant has not yet responded. Class certification — the court&apos;s decision on whether the case can proceed as a class action — typically takes 12 to 24 months after filing. See our <Link href="/faq">FAQ</Link> for how class actions work and what it means to be a class member.</p>
+            <h2>Case status</h2>
+            <p>{STATUS_SENTENCE[status]}<sup>*</sup></p>
+            <p style={{ fontSize: 13, color: 'var(--ink-muted)' }}>
+              <sup>*</sup> We try to update the status of each case every six months, in January and July.{' '}
+              {checkedAt
+                ? <>Status last checked on {formatDate(checkedAt)}.</>
+                : <>This case has not been re-checked since it was filed on {formatDate(c.date_filed)}.</>}
+              {' '}For anything more recent, see the {docketLink}. Our <Link href="/faq">FAQ</Link> explains how class actions work.
+            </p>
 
             <p style={{ fontSize: 13, color: 'var(--ink-muted)', borderTop: '1px solid var(--border)', paddingTop: 12, marginTop: 20 }}>
               {c.raw_complaint_url ? (

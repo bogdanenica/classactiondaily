@@ -3,6 +3,7 @@ import { NextResponse } from 'next/server';
 import { checkEmail, checkPhone, checkName, checkState, cleanText } from '@/app/lib/validate';
 import { sendEmail, emailConfigured, esc } from '@/app/lib/email';
 import { SITE_URL, SITE_NAME, OWNER, OWNER_ADDRESS_LINE } from '@/app/lib/site';
+import { subscribe, unsubscribeUrl } from '@/app/lib/newsletter';
 
 // Needs the Node runtime for the DNS lookup in validate.ts.
 export const runtime = 'nodejs';
@@ -13,6 +14,14 @@ const sql = neon(process.env.DATABASE_URL!);
 const MIN_FILL_SECONDS = 3;          // faster than this is a bot
 const MAX_PER_EMAIL_PER_DAY = 3;     // same address, any case
 const DEDUPE_WINDOW_HOURS = 24;      // same address + same case = duplicate
+
+// Wording of the confirmation email. Keep the plain-text and HTML versions in step by editing here.
+const REVIEW_TEXT_1 =
+  'We have received your message. An attorney at {firm} will review it. If we think we may be able to help, we may contact you within the next 30 days. We receive more messages than we can answer individually, so you may not hear from us at all.';
+const REVIEW_TEXT_2 =
+  'If you have not heard from us within 30 days, please assume we are not able to take your matter. Legal claims have filing deadlines, so do not rely on us to protect your rights in the meantime; consider speaking with another attorney. There is no cost and no obligation.';
+const NEWSLETTER_TEXT =
+  'You also signed up for our monthly email about new investigations we are running.';
 
 function bad(message: string, status = 400) {
   return NextResponse.json({ error: message }, { status });
@@ -31,7 +40,7 @@ export async function POST(request: Request) {
     return bad('Invalid request.');
   }
 
-  const { caseId, investigationId, consent, website, startedAt } = body ?? {};
+  const { caseId, investigationId, consent, newsletter, website, startedAt } = body ?? {};
 
   // --- Bot guards -----------------------------------------------------------
   if (typeof website === 'string' && website.trim() !== '') return silentOk(); // honeypot
@@ -117,6 +126,22 @@ export async function POST(request: Request) {
     return bad('Something went wrong saving your information. Please try again or email us directly.', 500);
   }
 
+  // --- Newsletter sign-up (only if they left the box checked) ----------------
+  let subscribed = false;
+  let unsubLink: string | null = null;
+  if (newsletter === true) {
+    const token = await subscribe({
+      email: emailRes.email,
+      name: nameRes.name,
+      state,
+      source: caseIdNum != null && !isNaN(caseIdNum) ? `case:${caseIdNum}` : `investigation:${invIdNum}`,
+    });
+    if (token) {
+      subscribed = true;
+      unsubLink = unsubscribeUrl(token);
+    }
+  }
+
   // --- Notify (never fails the request) ------------------------------------
   const submittedAt = new Date().toLocaleString('en-US', { timeZone: 'America/New_York', dateStyle: 'medium', timeStyle: 'short' }) + ' ET';
   let notified = false;
@@ -127,11 +152,12 @@ export async function POST(request: Request) {
     const rows = [
       ['Name', nameRes.name],
       ['Email', emailRes.email],
-      ['Phone', phoneRes.display ?? '—'],
-      ['State', state ?? '—'],
+      ['Phone', phoneRes.display ?? 'not given'],
+      ['State', state ?? 'not given'],
       ['Regarding', subjectLabel],
-      ['Defendant', defendant ?? '—'],
+      ['Defendant', defendant ?? 'not identified'],
       ['Submitted', submittedAt],
+      ['Newsletter', subscribed ? 'subscribed' : 'no'],
       ['Email domain accepts mail', 'yes (DNS verified)'],
     ];
     const tableHtml = rows
@@ -144,7 +170,7 @@ export async function POST(request: Request) {
     notified = await sendEmail({
       to,
       replyTo: emailRes.email,
-      subject: `New lead: ${nameRes.name} — ${subjectLabel}`,
+      subject: `New lead: ${nameRes.name}: ${subjectLabel}`,
       text:
         `New intake submission on ${SITE_NAME}\n\n` +
         rows.map(([k, v]) => `${k}: ${v}`).join('\n') +
@@ -164,25 +190,25 @@ export async function POST(request: Request) {
     acknowledged = await sendEmail({
       to: emailRes.email,
       replyTo: to,
-      subject: `We received your information — ${SITE_NAME}`,
+      subject: `We received your message: ${SITE_NAME}`,
       text:
         `Hello ${nameRes.name},\n\n` +
         `Thank you for contacting ${SITE_NAME} about:\n${subjectLabel}\n${subjectUrl}\n\n` +
-        `We have received your information. An attorney at ${OWNER.firm} will review it and may contact you within five business days. There is no cost and no obligation.\n\n` +
-        `If you have questions in the meantime, reply to this email or call ${OWNER.phoneDisplay}.\n\n` +
+        `${REVIEW_TEXT_1.replace('{firm}', OWNER.firm)}\n\n${REVIEW_TEXT_2}\n\n` +
+        (subscribed && unsubLink ? `${NEWSLETTER_TEXT} Unsubscribe at any time: ${unsubLink}\n\n` : '') +
         `${OWNER.firm}\n${OWNER.name}\n${OWNER_ADDRESS_LINE}\n${OWNER.email} · ${OWNER.phoneDisplay}\n\n` +
         `Attorney advertising. Submitting a form does not create an attorney-client relationship, and no lawyer represents you unless and until you sign a written engagement agreement. Please do not send confidential or time-sensitive information by email until representation has been confirmed. If you did not submit this form, you can ignore this message; we will not contact you again.`,
       html:
         `<div style="font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;font-size:15px;line-height:1.55;color:#111;max-width:600px">` +
         `<p>Hello ${esc(nameRes.name)},</p>` +
         `<p>Thank you for contacting ${esc(SITE_NAME)} about:<br><strong>${esc(subjectLabel)}</strong><br><a href="${esc(subjectUrl)}">${esc(subjectUrl)}</a></p>` +
-        `<p>We have received your information. An attorney at ${esc(OWNER.firm)} will review it and may contact you within five business days. There is no cost and no obligation.</p>` +
-        `<p>If you have questions in the meantime, reply to this email or call <a href="tel:${OWNER.phoneE164}">${esc(OWNER.phoneDisplay)}</a>.</p>` +
+        `<p>${esc(REVIEW_TEXT_1.replace('{firm}', OWNER.firm))}</p><p>${esc(REVIEW_TEXT_2)}</p>` +
+        (subscribed && unsubLink ? `<p>${esc(NEWSLETTER_TEXT)} <a href="${unsubLink}">Unsubscribe at any time</a>.</p>` : '') +
         `<p style="margin-top:20px">${esc(OWNER.firm)}<br>${esc(OWNER.name)}<br>${esc(OWNER_ADDRESS_LINE)}<br>${esc(OWNER.email)} · ${esc(OWNER.phoneDisplay)}</p>` +
         `<p style="margin-top:20px;font-size:12px;color:#666">Attorney advertising. Submitting a form does not create an attorney-client relationship, and no lawyer represents you unless and until you sign a written engagement agreement. Please do not send confidential or time-sensitive information by email until representation has been confirmed. If you did not submit this form, you can ignore this message; we will not contact you again.</p>` +
         `</div>`,
     });
   }
 
-  return NextResponse.json({ ok: true, duplicate, notified, acknowledged });
+  return NextResponse.json({ ok: true, duplicate, notified, acknowledged, subscribed });
 }
