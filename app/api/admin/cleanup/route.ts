@@ -209,8 +209,17 @@ async function secondPass(apply: boolean, rule: 'hedged' | 'all') {
       if (outcome === 'remove') {
         const why = !screen.consumer ? screen.reason : 'summary was written without the complaint and the docket gives no facts';
         const done = await unpublish(c.id, !screen.consumer ? 'not_consumer' : 'no_info', why);
-        removed.push({ ...line, why, result: done ? 'removed' : 'kept (has form submissions)' });
-        if (!done) continue;
+        if (!done) {
+          // Someone submitted a form on this page, so it has to stay. Replace the
+          // unverified text with the neutral note so it at least says nothing untrue.
+          const note = docketNote({
+            court: c.court_name || '',
+            dateFiled: String(c.date_filed instanceof Date ? c.date_filed.toISOString() : c.date_filed ?? '').slice(0, 10),
+            cause, nos,
+          });
+          await sql`UPDATE cases SET summary = ${note}, summary_source = 'docket' WHERE id = ${c.id}`;
+        }
+        removed.push({ ...line, why, result: done ? 'removed' : 'kept (has form submissions); text replaced with docket note' });
       } else {
         const note = docketNote({
           court: c.court_name || '',
