@@ -37,7 +37,7 @@ export async function generateMetadata({ params }: { params: Params }): Promise<
   const n = countRows[0]?.n ?? 0;
   return {
     title: `${category} class actions (${n})`,
-    description: `${INTROS[category] ?? ''} ${n} consumer class actions tracked, updated daily from CourtListener.`.trim(),
+    description: `${INTROS[category] ?? ''} ${n} consumer class actions tracked, updated daily.`.trim(),
     alternates: { canonical: `/categories/${slug}` },
   };
 }
@@ -57,9 +57,10 @@ export default async function CategoryPage({ params, searchParams }: { params: P
   if (page > totalPages) notFound();
 
   const cases = await sql`
-    SELECT id, case_name, defendant, court_name, docket_number, date_filed, allegation_type, summary, image_url
-    FROM cases
-    WHERE category = ${category}
+    SELECT c.id, c.case_name, c.defendant, c.court_name, c.docket_number, c.date_filed, c.allegation_type, c.summary, c.image_url,
+           COALESCE((to_jsonb(c)->>'curated')::boolean, false) AS curated
+    FROM cases c
+    WHERE c.category = ${category}
     ORDER BY date_filed DESC, id DESC
     LIMIT ${PAGE_SIZE} OFFSET ${offset}
   `;
@@ -106,7 +107,7 @@ export default async function CategoryPage({ params, searchParams }: { params: P
           <div className="case-meta">
             {c.allegation_type && <span className="tag">{c.allegation_type}</span>}
           </div>
-          <h3>{c.case_name}</h3>
+          <h3>{c.curated && <span style={{ color: 'var(--accent)' }} title="Summary reviewed by an attorney before publication">★ </span>}{c.case_name}</h3>
           <div className="case-defendant"><strong>Defendant:</strong> {c.defendant}</div>
           <p className="case-summary">{snippet(c.summary, 280)}</p>
           <div className="case-footer">

@@ -3,9 +3,9 @@
 
 export const SITE_URL = 'https://www.classactiondaily.com';
 export const SITE_NAME = 'ClassActionDaily';
-export const SITE_TAGLINE = 'Consumer Class Actions Filed in U.S. Federal Courts';
+export const SITE_TAGLINE = 'Consumer Class Actions Filed in U.S. Courts';
 export const SITE_DESCRIPTION =
-  'Plain-English summaries of every consumer class action filed in U.S. federal district courts, updated daily from CourtListener public records. Published by Access Law Group.';
+  'Plain-English summaries of newly filed consumer class actions in U.S. courts, updated daily from CourtListener, state court filings, and other public sources. Published by Access Law Group.';
 
 export const OWNER = {
   name: 'Bogdan Enica, Esq.',
@@ -70,7 +70,7 @@ export function snippet(text: string | null | undefined, max = 155): string {
 }
 
 // --- Page titles -----------------------------------------------------------
-// Search engines display roughly 60–65 characters of a <title>; Bing flags
+// Search engines display roughly 60 to 65 characters of a <title>; Bing flags
 // anything longer. The layout appends " | ClassActionDaily" (19 chars) via its
 // title template, so a templated title body should stay under ~44 chars.
 // When even the bare case name is longer than that, we drop the brand suffix

@@ -7,7 +7,7 @@ export const revalidate = 3600;
 
 export const metadata: Metadata = {
   title: 'Browse class actions by category',
-  description: 'Consumer class actions filed in U.S. federal courts, grouped by product or service category: food & beverage, financial products, retail, subscriptions, personal care, automotive, and more.',
+  description: 'Consumer class actions filed in U.S. courts, grouped by product or service category: food & beverage, financial products, retail, subscriptions, personal care, automotive, and more.',
   alternates: { canonical: '/categories' },
 };
 
@@ -30,7 +30,7 @@ export default async function CategoriesIndex() {
         Consumer class actions tracked, grouped by product or service category. Click a category to see every case we have on file.
       </p>
       {rows.length === 0 ? (
-        <p style={{ color: 'var(--ink-muted)' }}>No categories yet — cases will appear here once they&apos;re ingested.</p>
+        <p style={{ color: 'var(--ink-muted)' }}>No categories yet. Cases will appear here once they&apos;re ingested.</p>
       ) : (
         <div className="defendant-grid">
           {rows.map((r: any) => (

@@ -74,7 +74,7 @@ export default function Contact() {
 
       <h2 style={{ fontSize: 18, marginTop: 36, marginBottom: 8 }}>Corrections and removal requests</h2>
       <p style={{ color: 'var(--ink-soft)', maxWidth: 680 }}>
-        Case summaries on this site are generated automatically from public court records and may contain errors. If you are a party, counsel, or a company named in a listing and believe something is inaccurate, email <a href={`mailto:${OWNER.email}?subject=Correction%20request%20-%20ClassActionDaily`}>{OWNER.email}</a> with the case URL and a short description of the problem. We review every request and respond within five business days. Where a correction is warranted we will amend or remove the entry.
+        Most case summaries on this site are generated automatically from public court records, and any summary may contain errors. If you are a party, counsel, or a company named in a listing and believe something is inaccurate, email <a href={`mailto:${OWNER.email}?subject=Correction%20request%20-%20ClassActionDaily`}>{OWNER.email}</a> with the case URL and a short description of the problem. We review every request and respond within five business days. Where a correction is warranted we will amend or remove the entry.
       </p>
 
       <h2 style={{ fontSize: 18, marginTop: 28, marginBottom: 8 }}>About a case you were affected by</h2>

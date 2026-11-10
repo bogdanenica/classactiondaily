@@ -82,6 +82,7 @@ export async function GET(request: Request) {
           FROM cases
           WHERE courtlistener_id IS NOT NULL
             AND summary_source IS DISTINCT FROM 'complaint'
+            AND curated IS NOT TRUE AND manual IS NOT TRUE
             AND enrich_attempts < ${MAX_CASE_ATTEMPTS}
             AND (enrich_checked_at IS NULL OR enrich_checked_at < now() - make_interval(days => 14 * enrich_attempts))
           ORDER BY enrich_checked_at ASC NULLS FIRST, date_filed DESC

@@ -44,18 +44,18 @@ const FAQS: { q: string; a: React.ReactNode; plain: string }[] = [
   },
   {
     q: 'Where does the information on this site come from?',
-    plain: 'From CourtListener, a free public-records database maintained by the non-profit Free Law Project, which mirrors the federal courts’ PACER system. Every morning our software pulls newly filed class actions, generates a plain-English summary with AI, and publishes it. Each case page links to the original docket.',
-    a: <>From CourtListener, a free public-records database maintained by the non-profit Free Law Project, which mirrors the federal courts&apos; PACER system. Every morning our software pulls newly filed class actions, generates a plain-English summary using an AI language model, and publishes it. Each case page links back to the original docket entry.</>,
+    plain: 'From CourtListener (a free public-records database maintained by the non-profit Free Law Project, which mirrors the federal courts’ PACER system), from state court filings, and from other public sources. Every morning our software looks for newly filed consumer class actions and, when the complaint can be read, generates a plain-English summary with AI. Some cases are added by an attorney. Each case page names its source.',
+    a: <>From CourtListener (a free public-records database maintained by the non-profit Free Law Project, which mirrors the federal courts&apos; PACER system), from state court filings, and from other public sources. Every morning our software looks for newly filed consumer class actions and, when the complaint can be read, generates a plain-English summary using an AI language model. Some cases are added by an attorney at {OWNER.firm}. Each case page names its source.</>,
   },
   {
     q: 'Are the summaries reviewed by a lawyer?',
-    plain: 'No. Summaries are generated automatically so that cases appear within hours of filing, and they can contain errors. The court record is the authoritative source. Investigations, by contrast, are written and curated by attorneys.',
-    a: <>No. Summaries are generated automatically so that cases appear within hours of filing, and they can contain errors: a mis-named defendant, a mischaracterized claim. The court record is the authoritative source. <strong>Investigations</strong>, by contrast, are written and curated by attorneys at {OWNER.firm}. See <Link href="/about#accuracy">accuracy and limitations</Link>.</>,
+    plain: 'Some are. A case marked with a star has a summary that an attorney reviewed before publication. The star is about the accuracy of the summary; it is not an opinion on the merits of the case. All other summaries are generated automatically, are not reviewed by an attorney, and can contain errors. The court record is the authoritative source. Investigations are written and curated by attorneys.',
+    a: <>Some are. A case marked with a star (<span style={{ color: 'var(--accent)' }} aria-hidden="true">★</span>) has a summary that an attorney at {OWNER.firm} reviewed before publication. The star is about the accuracy of the summary; it is not an opinion on the merits of the case. All other summaries are generated automatically, are not reviewed by an attorney, and can contain errors: a mis-named defendant, a mischaracterized claim. The court record is the authoritative source. <strong>Investigations</strong> are written and curated by attorneys at {OWNER.firm}. See <Link href="/about#accuracy">accuracy and limitations</Link>.</>,
   },
   {
     q: 'A company I am involved with is listed here. Does that mean it did something wrong?',
     plain: 'No. A listing means only that a complaint naming the company was filed. A complaint contains unproven allegations; many are dismissed, settled without admission, or never certified. If you believe a listing is inaccurate, contact us and we will review it.',
-    a: <>No. A listing means only that a complaint naming the company was filed in federal court. A complaint contains unproven allegations; many class actions are dismissed, settled without any admission of wrongdoing, or never certified. If you believe a listing is inaccurate, <Link href="/contact">contact us</Link> and we will review it.</>,
+    a: <>No. A listing means only that a complaint naming the company was filed in court. A complaint contains unproven allegations; many class actions are dismissed, settled without any admission of wrongdoing, or never certified. If you believe a listing is inaccurate, <Link href="/contact">contact us</Link> and we will review it.</>,
   },
   {
     q: 'Who runs this site?',

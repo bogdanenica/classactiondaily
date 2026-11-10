@@ -129,20 +129,8 @@ Respond ONLY with valid JSON:
   return parseJson(text) as CaseSummary;
 }
 
-/** Summary from the complaint text itself. */
-export async function summarizeFromComplaint(input: { caseName: string; court: string; complaint: string }): Promise<CaseSummary> {
-  // Front matter, the nature of the action, parties, facts, and class definition
-  // are in the opening pages. Send a generous slice of the start plus the end
-  // (prayer for relief), and skip the repetitive counts in the middle.
-  const t = input.complaint.replace(/\u0000/g, '').trim();
-  const body = t.length <= 60_000 ? t : `${t.slice(0, 48_000)}\n\n[... middle of the complaint omitted ...]\n\n${t.slice(-8_000)}`;
-
-  const msg = await anthropic().messages.create({
-    model: MODEL,
-    max_tokens: 900,
-    messages: [{
-      role: 'user',
-      content: `Below is the text of a complaint filed in ${input.court}, captioned "${input.caseName}". Summarize it for a consumer-news site that lists consumer class actions.
+function complaintInstructions(caseName: string, court: string): string {
+  return `Summarize the complaint filed in ${court || 'court'}, captioned "${caseName}", for a consumer-news site that lists consumer class actions.
 
 First decide: is this a CONSUMER class action? That means a proposed class of people who bought, used, subscribed to, were charged for, were contacted by, or had their personal data handled by a company's product or service (false advertising, mislabeling, defects, hidden fees, auto-renewal, privacy and data breach, robocalls and texts, debt collection, credit reporting, and similar).
 It is NOT a consumer class action if it is: a wage, overtime, or other employment case (including FLSA collective actions); a securities or shareholder case; a civil rights or disability-access case; an ERISA or benefits case; an intellectual property case; a dispute between businesses; an individual (non-class) case; or a case against a government body.
@@ -156,13 +144,44 @@ Then write the summary:
 ${STYLE_RULES}
 
 Respond ONLY with valid JSON:
-{"consumer": true, "reason": "one short line saying why it is or is not a consumer class action", "defendant": "", "category": "", "allegation_type": "", "summary": ""}
+{"consumer": true, "reason": "one short line saying why it is or is not a consumer class action", "defendant": "", "category": "", "allegation_type": "", "summary": ""}`;
+}
 
-COMPLAINT TEXT:
-${body}`,
+/** Summary from the complaint text itself. */
+export async function summarizeFromComplaint(input: { caseName: string; court: string; complaint: string }): Promise<CaseSummary> {
+  // Front matter, the nature of the action, parties, facts, and class definition
+  // are in the opening pages. Send a generous slice of the start plus the end
+  // (prayer for relief), and skip the repetitive counts in the middle.
+  const t = input.complaint.replace(/\u0000/g, '').trim();
+  const body = t.length <= 60_000 ? t : `${t.slice(0, 48_000)}\n\n[... middle of the complaint omitted ...]\n\n${t.slice(-8_000)}`;
+
+  const msg = await anthropic().messages.create({
+    model: MODEL,
+    max_tokens: 900,
+    messages: [{
+      role: 'user',
+      content: `${complaintInstructions(input.caseName, input.court)}\n\nCOMPLAINT TEXT:\n${body}`,
     }],
   });
   const text = msg.content[0].type === 'text' ? msg.content[0].text : '';
+  return parseJson(text) as CaseSummary;
+}
+
+/** Summary from a complaint PDF (used when an attorney adds a case by hand). Reads scanned PDFs too. */
+export async function summarizeFromPdf(input: { caseName: string; court: string; pdfBase64: string }): Promise<CaseSummary> {
+  const msg = await anthropic().messages.create({
+    model: MODEL,
+    max_tokens: 900,
+    messages: [{
+      role: 'user',
+      content: [
+        { type: 'document', source: { type: 'base64', media_type: 'application/pdf', data: input.pdfBase64 } },
+        { type: 'text', text: `The attached PDF is the complaint. ${complaintInstructions(input.caseName, input.court)}` },
+      ],
+    }],
+  });
+  const block = msg.content.find((b) => b.type === 'text');
+  const text = block && block.type === 'text' ? block.text : '';
   return parseJson(text) as CaseSummary;
 }
 

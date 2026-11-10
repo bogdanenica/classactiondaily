@@ -6,7 +6,7 @@ export const revalidate = 3600;
 
 export const metadata: Metadata = {
   title: 'Defendants in recent class actions',
-  description: 'Companies named in consumer class action complaints filed in U.S. federal courts, ranked by number of cases tracked. Updated daily from CourtListener.',
+  description: 'Companies named in consumer class action complaints filed in U.S. courts, ranked by number of cases tracked. Updated daily.',
   alternates: { canonical: '/defendants' },
 };
 

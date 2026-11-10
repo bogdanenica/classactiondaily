@@ -75,6 +75,9 @@ export default async function CaseDetail({ params }: { params: Params }) {
   const status = asStatus(c.status);
   const checkedAt: Date | null = c.status_checked_at ? new Date(c.status_checked_at) : null;
   const fromComplaint = c.summary_source === 'complaint';
+  const curated = c.curated === true;
+  const manual = c.manual === true;
+  const firmRepresents = c.firm_represents === true;
   // Latest docket entries, saved by the status check. Public-record text, shown as is.
   const events: { date: string | null; text: string }[] = Array.isArray(c.status_events)
     ? c.status_events.filter((e: any) => e && typeof e.text === 'string' && e.text.trim()).slice(0, 5)
@@ -131,7 +134,7 @@ export default async function CaseDetail({ params }: { params: Params }) {
 
       <article>
         <div className="detail-header">
-          <h1>{c.case_name}</h1>
+          <h1>{curated && <span style={{ color: 'var(--accent)' }} title="Summary reviewed by an attorney before publication">★ </span>}{c.case_name}</h1>
           <div className="case-defendant"><strong>Defendant:</strong> {c.defendant}</div>
           <div className="case-meta">
             {isNew && <span className="tag new">New today</span>}
@@ -148,6 +151,17 @@ export default async function CaseDetail({ params }: { params: Params }) {
           </div>
         </div>
 
+        {curated && (
+          <p style={{ fontSize: 13, color: 'var(--ink-soft)', margin: '10px 0 0' }}>
+            <span style={{ color: 'var(--accent)' }}>★</span> The summary of this case was reviewed by an attorney before publication. The star is not an opinion on the merits of the case.
+          </p>
+        )}
+        {firmRepresents && (
+          <p style={{ fontSize: 14, background: 'var(--bg-alt)', border: '1px solid var(--border)', borderLeft: '4px solid var(--accent)', borderRadius: 4, padding: '10px 14px', margin: '12px 0 0' }}>
+            <strong>Disclosure:</strong> {OWNER.firm}, the publisher of this site, represents the plaintiffs in this case.
+          </p>
+        )}
+
         <div className="detail-body">
           <div className="detail-main">
             {c.image_url && (
@@ -163,11 +177,14 @@ export default async function CaseDetail({ params }: { params: Params }) {
             <h2>Case status</h2>
             <p>{STATUS_SENTENCE[status]}<sup>*</sup></p>
             <p style={{ fontSize: 13, color: 'var(--ink-muted)' }}>
-              <sup>*</sup> We try to update the status of each case about every six months.{' '}
+              <sup>*</sup> {manual
+                ? <>The status of this case is updated by hand.{' '}</>
+                : <>We try to update the status of each case about every six months.{' '}</>}
               {checkedAt
                 ? <>Status last checked on {formatDate(checkedAt)}.</>
                 : <>This case has not been re-checked since it was filed on {formatDate(c.date_filed)}.</>}
-              {' '}For anything more recent, see the {docketLink}. Our <Link href="/faq">FAQ</Link> explains how class actions work.
+              {' '}{c.raw_complaint_url ? <>For anything more recent, see the {docketLink}. </> : <>For anything more recent, check the court&apos;s own records. </>}
+              Our <Link href="/faq">FAQ</Link> explains how class actions work.
             </p>
 
             {events.length > 0 && (
@@ -188,14 +205,20 @@ export default async function CaseDetail({ params }: { params: Params }) {
             )}
 
             <p style={{ fontSize: 13, color: 'var(--ink-muted)', borderTop: '1px solid var(--border)', paddingTop: 12, marginTop: 20 }}>
-              {c.raw_complaint_url ? (
+              {manual ? (
+                c.raw_complaint_url
+                  ? <>Source: <a href={c.raw_complaint_url} target="_blank" rel="noopener noreferrer">complaint filed in {c.source_note || c.court_name}</a>. </>
+                  : <>Source: complaint filed in {c.source_note || c.court_name}. </>
+              ) : c.raw_complaint_url ? (
                 <>Source: <a href={c.raw_complaint_url} target="_blank" rel="noopener noreferrer">CourtListener docket entry</a>. </>
               ) : (
                 <>Source: CourtListener / PACER public records. </>
               )}
-              {fromComplaint
-                ? <>This summary was generated automatically from the complaint filed in this case and has not been reviewed by an attorney. It describes allegations, which have not been proven. </>
-                : <>This summary was generated automatically from the docket&apos;s case-type coding; the complaint itself has not yet been read. It has not been reviewed by an attorney. </>}
+              {curated
+                ? <>This summary was prepared from the complaint and reviewed by an attorney before publication. It describes allegations, which have not been proven. </>
+                : fromComplaint
+                  ? <>This summary was generated automatically from the complaint filed in this case and has not been reviewed by an attorney. It describes allegations, which have not been proven. </>
+                  : <>This summary was generated automatically from the docket&apos;s case-type coding; the complaint itself has not yet been read. It has not been reviewed by an attorney. </>}
               It may contain errors and may not reflect subsequent filings. Published by {OWNER.firm}; responsible attorney {OWNER.name}.
             </p>
           </div>

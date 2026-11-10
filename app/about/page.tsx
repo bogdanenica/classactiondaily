@@ -5,7 +5,7 @@ import { SITE_URL, SITE_NAME, OWNER, OWNER_ADDRESS_LINE } from '../lib/site';
 
 export const metadata: Metadata = {
   title: { absolute: 'About ClassActionDaily: who runs it and how it works' },
-  description: `ClassActionDaily is published by ${OWNER.firm} (${OWNER.name}, Florida Bar No. ${OWNER.barFlorida}). Learn how we source, summarize, and publish newly filed consumer class actions from CourtListener.`,
+  description: `ClassActionDaily is published by ${OWNER.firm} (${OWNER.name}, Florida Bar No. ${OWNER.barFlorida}). Learn how we source, summarize, and publish newly filed consumer class actions.`,
   alternates: { canonical: '/about' },
 };
 
@@ -41,7 +41,7 @@ export default function About() {
       <div className="breadcrumb"><Link href="/">Home</Link> › About</div>
       <h1 style={{ marginBottom: 8 }}>About {SITE_NAME}</h1>
       <P>
-        {SITE_NAME} aggregates newly filed consumer class action complaints from U.S. federal district courts and publishes plain-English summaries within 24 hours of filing. It is a free public resource; no account or payment is ever required to read it.
+        {SITE_NAME} tracks newly filed consumer class action complaints in U.S. courts and publishes plain-English summaries of them. It is a free public resource; no account or payment is ever required to read it.
       </P>
 
       <H2 id="who">Who runs this site</H2>
@@ -54,7 +54,7 @@ export default function About() {
 
       <H2 id="how">How it works</H2>
       <P>
-        The site has two distinct sections. <strong>Latest Cases</strong> are filed complaints pulled automatically each morning from CourtListener, a free public-records database maintained by the non-profit Free Law Project, for putative class actions in consumer-protection categories. We extract the docket information and generate a readable summary using an AI language model. Cases are published automatically, without attorney review, so that they appear within hours of filing.
+        The site has two distinct sections. <strong>Latest Cases</strong> are filed complaints. Most are found automatically each morning on CourtListener, a free public-records database maintained by the non-profit Free Law Project. Our software reads the complaint when it is available and generates a summary using an AI language model; until the complaint can be read, the page shows only how the court docket classifies the case. Cases that are not consumer class actions are left out. Some cases, including cases filed in state courts, are added by an attorney at {OWNER.firm}. A case marked with a star (<span style={{ color: 'var(--accent)' }} aria-hidden="true">★</span>) has a summary that an attorney reviewed before publication. All other summaries are published without attorney review.
       </P>
       <P>
         <strong>Investigations</strong> are different: they are editorially curated, pre-litigation inquiries where attorneys are evaluating whether a class action can be brought. No suit has been filed. Investigations appear and update only when a lawyer at {OWNER.firm} opens one. Submissions help determine whether a case is viable.
@@ -62,15 +62,15 @@ export default function About() {
 
       <H2 id="accuracy">Accuracy and limitations</H2>
       <P>
-        Because case summaries are machine-generated from the docket text, they can contain mistakes: a mis-identified defendant, a mischaracterized claim, or a stale status. Every case page links to the original CourtListener docket entry, which is the authoritative source. If you spot an error, please <Link href="/contact">tell us</Link> and we will correct or remove the entry.
+        Because most case summaries are machine-generated, they can contain mistakes: a mis-identified defendant, a mischaracterized claim, or a stale status. A star means an attorney reviewed the summary for accuracy; it is not an opinion about the merits of the case. The court record is the authoritative source, and case pages link to it where a public docket is available. If you spot an error, please <Link href="/contact">tell us</Link> and we will correct or remove the entry.
       </P>
       <P>
-        The inclusion of a company on this site means only that a complaint naming it was filed in federal court. A complaint contains unproven allegations. It does not mean the company did anything wrong, and nothing on this site should be read as a statement that it did.
+        The inclusion of a company on this site means only that a complaint naming it was filed in court. A complaint contains unproven allegations. It does not mean the company did anything wrong, and nothing on this site should be read as a statement that it did.
       </P>
 
       <H2 id="sources">Source of data</H2>
       <P>
-        All case information is sourced from CourtListener (<a href="https://www.courtlistener.com" target="_blank" rel="noopener noreferrer">courtlistener.com</a>) and, through it, the federal judiciary&apos;s PACER system. We do not host complaint PDFs; links return readers to the original docket entry.
+        Case information comes from CourtListener (<a href="https://www.courtlistener.com" target="_blank" rel="noopener noreferrer">courtlistener.com</a>) and, through it, the federal judiciary&apos;s PACER system; from state court filings; and from other public sources. Each case page names its own source. We do not host complaint PDFs.
       </P>
 
       <H2 id="disclosures">Disclosures: what happens when you submit a form</H2>

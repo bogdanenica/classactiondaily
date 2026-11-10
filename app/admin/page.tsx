@@ -52,6 +52,14 @@ export default async function AdminPage() {
     revalidatePath('/sitemap.xml');
   }
 
+  async function openCase(formData: FormData) {
+    'use server';
+    await requireAdmin();
+    // Accepts "613" or a pasted address like https://www.classactiondaily.com/cases/613
+    const m = String(formData.get('caseRef') ?? '').match(/(\d+)\s*\/?\s*$/);
+    if (m) redirect(`/admin/cases/${m[1]}/edit`);
+  }
+
   async function approveDraft(formData: FormData) {
     'use server';
     await requireAdmin();
@@ -116,9 +124,23 @@ export default async function AdminPage() {
   return (
     <div className="single-col">
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 24 }}>
-        <h1>Admin · Investigations</h1>
+        <h1>Admin</h1>
         <form action={logout}>
           <button type="submit" style={{ ...btnLink, color: 'var(--ink-muted)', textDecoration: 'underline' }}>Log out</button>
+        </form>
+      </div>
+
+      {/* ---------------- Cases ---------------- */}
+      <div style={{ border: '1px solid var(--border)', borderRadius: 6, padding: 20, marginBottom: 32 }}>
+        <h2 style={{ fontSize: 18, marginBottom: 6 }}>Cases</h2>
+        <p style={{ fontSize: 14, marginBottom: 12 }}>
+          <Link href="/admin/cases/new" style={{ fontWeight: 600 }}>Add a case from a complaint</Link>
+          <span style={{ color: 'var(--ink-muted)' }}> (state court or anything the daily feed missed)</span>
+        </p>
+        <form action={openCase} style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+          <label htmlFor="caseRef" style={{ fontSize: 14 }}>Edit or star an existing case:</label>
+          <input id="caseRef" name="caseRef" placeholder="case number from the page address, e.g. 613" style={{ padding: '6px 10px', border: '1px solid var(--border-strong)', borderRadius: 4, fontSize: 14, minWidth: 300 }} />
+          <button type="submit" style={{ padding: '6px 14px', background: 'var(--primary)', color: '#fff', border: 0, borderRadius: 4, fontSize: 14, cursor: 'pointer' }}>Open</button>
         </form>
       </div>
 

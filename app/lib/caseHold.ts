@@ -7,7 +7,7 @@ import { neon } from '@neondatabase/serverless';
 
 const sql = neon(process.env.DATABASE_URL!);
 
-export type HoldReason = 'no_info' | 'not_consumer';
+export type HoldReason = 'no_info' | 'not_consumer' | 'removed';
 
 /** Is this docket already published or held? */
 export async function alreadyKnown(courtlistenerId: string | number): Promise<boolean> {

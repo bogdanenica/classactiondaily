@@ -9,7 +9,7 @@ import { SITE_NAME, SITE_TAGLINE, SITE_DESCRIPTION, CATEGORIES, formatDate } fro
 export const dynamic = 'force-dynamic';
 
 export const metadata: Metadata = {
-  title: { absolute: `${SITE_NAME} — ${SITE_TAGLINE}` },
+  title: { absolute: `${SITE_NAME}: ${SITE_TAGLINE}` },
   description: SITE_DESCRIPTION,
   alternates: { canonical: '/' },
 };
@@ -37,9 +37,10 @@ export default async function Home({ searchParams }: { searchParams: SearchParam
   const cats = selected.length > 0 ? selected : null;
 
   const cases = await sql`
-    SELECT id, case_name, defendant, court_name, docket_number,
-           date_filed, category, allegation_type, summary, image_url
-    FROM cases
+    SELECT c.id, c.case_name, c.defendant, c.court_name, c.docket_number,
+           c.date_filed, c.category, c.allegation_type, c.summary, c.image_url,
+           COALESCE((to_jsonb(c)->>'curated')::boolean, false) AS curated
+    FROM cases c
     WHERE (${since}::date IS NULL OR date_filed >= ${since}::date)
       AND (${cats}::text[] IS NULL OR category = ANY(${cats}::text[]))
     ORDER BY date_filed DESC, id DESC
@@ -62,8 +63,8 @@ export default async function Home({ searchParams }: { searchParams: SearchParam
     <>
       <section className="hero">
         <div className="hero-inner">
-          <h1>Every consumer class action, filed daily.</h1>
-          <p>We track new class action complaints in U.S. federal courts and publish plain-English summaries within 24 hours. Updated automatically from CourtListener public records.</p>
+          <h1>New consumer class actions, tracked daily.</h1>
+          <p>We track new consumer class action complaints and publish plain-English summaries. Sourced from CourtListener, state court filings, and other public sources. Cases marked <span style={{ color: 'var(--accent)' }} aria-hidden="true">★</span> have a summary reviewed by an attorney before publication.</p>
           <div className="hero-meta">
             <span><strong>{newToday}</strong> new today</span>
             <span><strong>{total}</strong> total cases tracked</span>
@@ -109,7 +110,7 @@ export default async function Home({ searchParams }: { searchParams: SearchParam
                   {c.category && <span className="tag">{c.category}</span>}
                   {c.allegation_type && <span className="tag">{c.allegation_type}</span>}
                 </div>
-                <h3>{c.case_name}</h3>
+                <h3>{c.curated && <span style={{ color: 'var(--accent)' }} title="Summary reviewed by an attorney before publication">★ </span>}{c.case_name}</h3>
                 <div className="case-defendant"><strong>Defendant:</strong> {c.defendant}</div>
                 <p className="case-summary">{c.summary}</p>
                 <div className="case-footer">

@@ -15,7 +15,7 @@ export const metadata: Metadata = {
   // metadataBase makes every relative URL in child metadata (OG images, canonicals) absolute.
   metadataBase: new URL(SITE_URL),
   title: {
-    default: `${SITE_NAME} — ${SITE_TAGLINE}`,
+    default: `${SITE_NAME}: ${SITE_TAGLINE}`,
     template: `%s | ${SITE_NAME}`,
   },
   description: SITE_DESCRIPTION,
@@ -32,13 +32,13 @@ export const metadata: Metadata = {
     type: "website",
     siteName: SITE_NAME,
     url: SITE_URL,
-    title: `${SITE_NAME} — ${SITE_TAGLINE}`,
+    title: `${SITE_NAME}: ${SITE_TAGLINE}`,
     description: SITE_DESCRIPTION,
     locale: "en_US",
   },
   twitter: {
     card: "summary_large_image",
-    title: `${SITE_NAME} — ${SITE_TAGLINE}`,
+    title: `${SITE_NAME}: ${SITE_TAGLINE}`,
     description: SITE_DESCRIPTION,
   },
 };
@@ -106,7 +106,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             <div>
               <div className="brand">Class<span>Action</span>Daily</div>
               <p style={{ fontSize: 13, color: "#8b96a3", marginTop: 8 }}>
-                Tracking new consumer class actions filed in U.S. federal courts. Updated daily.
+                Tracking new consumer class actions filed in U.S. courts. Updated daily.
               </p>
               <p style={{ fontSize: 13, color: "#8b96a3", marginTop: 12, lineHeight: 1.5 }}>
                 Published by <strong style={{ color: "#c9d1da" }}>{OWNER.firm}</strong><br />
@@ -136,7 +136,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             </div>
           </div>
           <div className="legal-disclaimer">
-            <strong>Attorney advertising.</strong> The content on this site is for general informational purposes only and does not constitute legal advice. No attorney-client relationship is formed by use of this site or submission of any form. Prior results do not guarantee a similar outcome. Case summaries are generated automatically from public court records and may contain errors; consult the original docket entry on CourtListener for authoritative information. ClassActionDaily is published by {OWNER.firm}, {OWNER_ADDRESS_LINE}. Responsible attorney: {OWNER.name}, Florida Bar No. {OWNER.barFlorida}. © {year} {OWNER.firm}. All rights reserved.
+            <strong>Attorney advertising.</strong> The content on this site is for general informational purposes only and does not constitute legal advice. No attorney-client relationship is formed by use of this site or submission of any form. Prior results do not guarantee a similar outcome. Unless marked with a star, case summaries are generated automatically from public court records, are not reviewed by an attorney, and may contain errors; the court record is the authoritative source. ClassActionDaily is published by {OWNER.firm}, {OWNER_ADDRESS_LINE}. Responsible attorney: {OWNER.name}, Florida Bar No. {OWNER.barFlorida}. © {year} {OWNER.firm}. All rights reserved.
           </div>
         </footer>
       </body>
