@@ -17,6 +17,10 @@
       "schedule": "0 9 * * *"
     },
     {
+      "path": "/api/cron/enrich?run=2",
+      "schedule": "0 10 * * *"
+    },
+    {
       "path": "/api/cron/newsletter",
       "schedule": "0 15 1 * *"
     }
