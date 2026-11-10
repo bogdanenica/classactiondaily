@@ -155,7 +155,7 @@ export default async function CaseDetail({ params }: { params: Params }) {
             <h2>Case status</h2>
             <p>{STATUS_SENTENCE[status]}<sup>*</sup></p>
             <p style={{ fontSize: 13, color: 'var(--ink-muted)' }}>
-              <sup>*</sup> We try to update the status of each case every six months, in January and July.{' '}
+              <sup>*</sup> We try to update the status of each case about every six months.{' '}
               {checkedAt
                 ? <>Status last checked on {formatDate(checkedAt)}.</>
                 : <>This case has not been re-checked since it was filed on {formatDate(c.date_filed)}.</>}

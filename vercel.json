@@ -10,7 +10,7 @@
     },
     {
       "path": "/api/cron/status",
-      "schedule": "0 8 * 1,7 *"
+      "schedule": "0 8 * * *"
     },
     {
       "path": "/api/cron/newsletter",

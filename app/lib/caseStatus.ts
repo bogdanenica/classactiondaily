@@ -1,7 +1,7 @@
 // Case status: what the docket shows about where a case stands.
 //
-// Cases are ingested once, at filing. Twice a year (January and July) the job
-// in app/api/cron/status re-reads each docket on CourtListener and stores one
+// Cases are ingested once, at filing. A daily job in app/api/cron/status works
+// through the open cases a few at a time and re-reads each docket on CourtListener and stores one
 // of the statuses below. The case page shows a fixed sentence per status, so
 // nothing a machine "wrote" about a case ever reaches the public page.
 //
