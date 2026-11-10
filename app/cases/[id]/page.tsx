@@ -40,6 +40,9 @@ export async function generateMetadata({ params }: { params: Params }): Promise<
     title,
     description,
     alternates: { canonical: `/cases/${c.id}` },
+    // Pages that only repeat the docket's coding are kept out of search results
+    // until the complaint has been read and a real summary is in place.
+    robots: c.summary_source === 'docket' ? { index: false, follow: true } : undefined,
     openGraph: {
       type: 'article',
       url,

@@ -166,6 +166,27 @@ ${body}`,
   return parseJson(text) as CaseSummary;
 }
 
+/**
+ * A fixed, no-AI note for a case where all we have is the docket's coding.
+ * Used by the cleanup job to replace guessed summaries: nothing here can be
+ * wrong, because it only repeats what the docket says.
+ */
+export function docketNote(input: { court: string; dateFiled: string; cause: string; nos: string }): string {
+  const strip = (v: string) => clean(v).replace(/^\d{2,3}\s+/, '').replace(/^\d{1,2}:\w+(\([a-z0-9]+\))*\s+/i, '').replace(/[.\s]+$/, '');
+  const nos = strip(input.nos);
+  const cause = strip(input.cause);
+  const when = input.dateFiled
+    ? new Date(input.dateFiled + 'T12:00:00Z').toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })
+    : '';
+  const filed = `This lawsuit was filed${input.court ? ` in ${input.court}` : ''}${when ? ` on ${when}` : ''}.`;
+  const coded = nos && cause && nos.toLowerCase() !== cause.toLowerCase()
+    ? ` The court docket classifies it as "${nos}" and lists the cause of action as "${cause}".`
+    : nos || cause
+      ? ` The court docket classifies it as "${nos || cause}".`
+      : '';
+  return `${filed}${coded} The complaint has not yet been read, so the specific allegations and the proposed class are not described here. This note will be replaced with a summary once the complaint is available.`;
+}
+
 /** Light sanity checks on a model summary before it is published. */
 export function summaryProblems(s: CaseSummary | null | undefined, source: 'docket' | 'complaint'): string | null {
   if (!s || typeof s.summary !== 'string') return 'no summary returned';

@@ -30,9 +30,10 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   }));
 
   const cases = await sql`
-    SELECT id, date_filed, created_at
-    FROM cases
-    ORDER BY id DESC
+    SELECT c.id, c.date_filed, c.created_at
+    FROM cases c
+    WHERE COALESCE(to_jsonb(c)->>'summary_source', '') <> 'docket'
+    ORDER BY c.id DESC
   `;
   const casePages: MetadataRoute.Sitemap = cases.map((c: any) => ({
     url: `${SITE_URL}/cases/${c.id}`,

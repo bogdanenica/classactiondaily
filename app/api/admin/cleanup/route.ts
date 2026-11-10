@@ -1,7 +1,7 @@
 import { neon } from '@neondatabase/serverless';
 import { NextResponse } from 'next/server';
 import { newBudget, fetchDocketMeta, OutOfBudget } from '@/app/lib/courtlistener';
-import { screenDocket, hasDocketInfo, looksGuessed, summarizeFromDocket, summaryProblems, tidy } from '@/app/lib/caseQuality';
+import { screenDocket, hasDocketInfo, looksGuessed, docketNote } from '@/app/lib/caseQuality';
 import { unpublish } from '@/app/lib/caseHold';
 
 // One-time cleanup of pages published before the quality rules existed.
@@ -10,7 +10,7 @@ import { unpublish } from '@/app/lib/caseHold';
 // (20 cases per CourtListener request) and then:
 //   - not a consumer case                      -> page removed (saved in cases_held)
 //   - summary was guessed, docket says nothing -> page removed until the complaint is read
-//   - summary was guessed, docket has facts    -> summary rewritten from those facts
+//   - summary was guessed, docket has facts    -> summary replaced by a fixed note of those facts
 //   - otherwise                                -> kept as is
 // The nightly complaint reader later restores removed pages it can confirm.
 //
@@ -114,24 +114,16 @@ export async function GET(request: Request) {
         } else if (guessed) {
           bump('rewrite from docket facts');
           if (apply) {
-            const s = await summarizeFromDocket({
-              caseName: c.case_name, court: c.court_name || '', dateFiled: String(c.date_filed ?? '').slice(0, 10), cause: m.cause, nos: m.nos,
+            // No AI here: a fixed note that only repeats the docket's own coding.
+            const note = docketNote({
+              court: c.court_name || '', dateFiled: String(c.date_filed instanceof Date ? c.date_filed.toISOString() : c.date_filed ?? '').slice(0, 10),
+              cause: m.cause, nos: m.nos,
             });
-            const problem = summaryProblems(s, 'docket');
-            if (!s.consumer) {
-              const done = await unpublish(c.id, 'not_consumer', s.reason || 'not a consumer case');
-              removed.push({ ...line, why: s.reason, result: done ? 'removed' : 'kept (has form submissions)' });
-              if (!done) await sql`UPDATE cases SET cause = ${m.cause}, nature_of_suit = ${m.nos}, meta_checked_at = now() WHERE id = ${c.id}`;
-            } else if (problem) {
-              problems.push({ ...line, problem });
-              await sql`UPDATE cases SET cause = ${m.cause}, nature_of_suit = ${m.nos}, meta_checked_at = now() WHERE id = ${c.id}`;
-            } else {
-              await sql`
-                UPDATE cases SET summary = ${tidy(s.summary)}, summary_source = 'docket',
-                  cause = ${m.cause}, nature_of_suit = ${m.nos}, meta_checked_at = now()
-                WHERE id = ${c.id}`;
-              rewritten.push({ ...line, result: 'rewritten' });
-            }
+            await sql`
+              UPDATE cases SET summary = ${note}, summary_source = 'docket',
+                cause = ${m.cause}, nature_of_suit = ${m.nos}, meta_checked_at = now()
+              WHERE id = ${c.id}`;
+            rewritten.push({ ...line, result: 'rewritten' });
           } else {
             rewritten.push({ ...line, result: 'would rewrite' });
           }
