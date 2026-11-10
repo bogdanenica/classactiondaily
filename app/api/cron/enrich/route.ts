@@ -29,7 +29,7 @@ export const maxDuration = 300;
 const sql = neon(process.env.DATABASE_URL!);
 
 const MAX_REQUESTS = 15;        // CourtListener requests per run
-const TIME_BUDGET_MS = 250_000;
+const TIME_BUDGET_MS = 215_000; // leaves room for one more summary and image
 const MAX_HELD_ATTEMPTS = 5;
 const MAX_CASE_ATTEMPTS = 4;
 
@@ -41,6 +41,18 @@ type Candidate = {
   court: string;
   facts: any;
 };
+
+// The old picture was drawn from the old (guessed) summary. Replace it with one
+// that matches what the complaint actually says. A failure here is not fatal.
+async function refreshImage(caseId: number, caseName: string, s: { defendant: string; category: string; allegation_type: string }, summary: string, out: any) {
+  try {
+    const prompt = await generateImagePrompt({ caseName, defendant: s.defendant, category: s.category, allegation: s.allegation_type, summary });
+    const url = await generateAndStoreImage(prompt, `cases/enrich-${caseId}-${Date.now()}-${IMAGE_VERSION}`);
+    await sql`UPDATE cases SET image_url = ${url} WHERE id = ${caseId}`;
+  } catch (err: any) {
+    out.imageError = err?.message || String(err);
+  }
+}
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
@@ -178,6 +190,7 @@ export async function GET(request: Request) {
               allegation_type = ${s.allegation_type}, summary_source = 'complaint',
               enrich_checked_at = now()
             WHERE id = ${c.caseId}`;
+          await refreshImage(c.caseId!, c.caseName, s, summary, out);
         }
       } else if (c.caseId != null) {
         bump('restored');
@@ -188,6 +201,7 @@ export async function GET(request: Request) {
             UPDATE cases SET summary = ${summary}, defendant = ${s.defendant}, category = ${s.category},
               allegation_type = ${s.allegation_type}, summary_source = 'complaint', enrich_checked_at = now()
             WHERE id = ${id}`;
+          if (id != null) await refreshImage(id, c.caseName, s, summary, out);
         }
       } else {
         bump('published');

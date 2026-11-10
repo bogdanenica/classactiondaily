@@ -59,6 +59,18 @@ export const HEDGE_SQL =
   '(appears? to (involve|be|concern|relate)|would likely|likely (consist|include|involve)|potentially involving|have not (yet )?been (detailed|specified|disclosed)|not (yet )?(been )?(detailed|available|specified) in|details? (of the complaint )?(are|is|remain) (limited|unclear|not yet available|unavailable)|remain(s)? unclear|would require review|precise allegations|more information becomes available|complaint details are not|specific (details|allegations|cause of action)[^.]{0,60}(limited|not|unclear|unavailable))';
 export const HEDGE_RE = new RegExp(HEDGE_SQL, 'i');
 
+// A wider net for the second cleanup pass. Older summaries were written from
+// the case name and docket codes alone, and fill the gaps with phrases like
+// these. Only applied to summaries that did not come from a complaint.
+export const HEDGE_WIDE_RE = new RegExp(
+  HEDGE_SQL + '|' +
+  '(likely (related|relating|by|centers?|to|includes?|involv\\w+|stems?|school)|typically involve|(is|are) expected to include|(may|could|might) (include|relate|involve|have)|one or more of its|potentially (including|through|numbering)|not fully outlined|suggesting (the|that)|has not yet been formally|(a |the )?(specified|defined|specific|relevant) (time )?period|or other (deceptive|product characteristics)|such as [^.]{0,80}, or (other|similar))',
+  'i');
+
+export function looksGuessedWide(summary: unknown): boolean {
+  return HEDGE_WIDE_RE.test(String(summary ?? ''));
+}
+
 export function looksGuessed(summary: unknown): boolean {
   return HEDGE_RE.test(String(summary ?? ''));
 }

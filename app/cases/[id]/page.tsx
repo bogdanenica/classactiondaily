@@ -50,7 +50,7 @@ export async function generateMetadata({ params }: { params: Params }): Promise<
       description,
       siteName: SITE_NAME,
       publishedTime: new Date(c.date_filed).toISOString(),
-      images: c.image_url ? [{ url: c.image_url, alt: `Illustration for ${c.case_name}` }] : undefined,
+      images: c.image_url && c.summary_source !== 'docket' ? [{ url: c.image_url, alt: `Illustration for ${c.case_name}` }] : undefined,
     },
     twitter: {
       card: c.image_url ? 'summary_large_image' : 'summary',
@@ -141,7 +141,7 @@ export default async function CaseDetail({ params }: { params: Params }) {
             {c.category && (
               <Link href={`/categories/${categorySlug(c.category)}`} className="tag">{c.category}</Link>
             )}
-            {c.allegation_type && <span className="tag">{c.allegation_type}</span>}
+            {c.allegation_type && c.summary_source !== 'docket' && <span className="tag">{c.allegation_type}</span>}
           </div>
           <div className="docket-row">
             <div className="docket-cell">Court<strong>{c.court_name}</strong></div>
@@ -164,7 +164,7 @@ export default async function CaseDetail({ params }: { params: Params }) {
 
         <div className="detail-body">
           <div className="detail-main">
-            {c.image_url && (
+            {c.image_url && c.summary_source !== 'docket' && (
               <img
                 src={c.image_url}
                 alt={`Illustration for ${c.case_name}`}

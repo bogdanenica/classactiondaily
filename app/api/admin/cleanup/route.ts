@@ -1,7 +1,7 @@
 import { neon } from '@neondatabase/serverless';
 import { NextResponse } from 'next/server';
 import { newBudget, fetchDocketMeta, OutOfBudget } from '@/app/lib/courtlistener';
-import { screenDocket, hasDocketInfo, looksGuessed, docketNote } from '@/app/lib/caseQuality';
+import { screenDocket, hasDocketInfo, looksGuessed, looksGuessedWide, docketNote } from '@/app/lib/caseQuality';
 import { unpublish } from '@/app/lib/caseHold';
 
 // One-time cleanup of pages published before the quality rules existed.
@@ -35,6 +35,7 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
   const apply = searchParams.get('apply') === '1';
+  if (searchParams.get('pass') === '2') return secondPass(apply, searchParams.get('rule') === 'all' ? 'all' : 'hedged');
   const onlyId = searchParams.get('id') ? parseInt(searchParams.get('id')!, 10) : null;
   const maxRequests = apply ? 8 : 2;
   const started = Date.now();
@@ -151,6 +152,91 @@ export async function GET(request: Request) {
     seconds: Math.round((Date.now() - started) / 1000),
     removed,
     rewritten,
+    problems,
+  });
+}
+
+// ---------------------------------------------------------------------------
+// Second pass. No CourtListener requests: it works from the cause of action
+// and nature of suit the first pass already stored.
+//
+// It looks only at summaries that were written before the quality rules and
+// were kept by the first pass (not from a complaint, not a docket note, not
+// starred, not added by hand).
+//   rule=hedged (default)  act on those whose text contains guessing language
+//   rule=all               act on every one of them
+// Acting means: not a consumer case -> removed; docket has facts -> replaced by
+// the fixed docket note; docket has nothing -> removed until the complaint is read.
+//
+//   /api/admin/cleanup?key=KEY&pass=2                      preview, shows counts for both rules
+//   /api/admin/cleanup?key=KEY&pass=2&apply=1              apply rule "hedged"
+//   /api/admin/cleanup?key=KEY&pass=2&apply=1&rule=all     apply rule "all"
+// ---------------------------------------------------------------------------
+async function secondPass(apply: boolean, rule: 'hedged' | 'all') {
+  const started = Date.now();
+  let rows: any[];
+  try {
+    rows = await sql`
+      SELECT id, case_name, court_name, date_filed, summary, cause, nature_of_suit
+      FROM cases
+      WHERE summary_source IS NULL AND curated IS NOT TRUE AND manual IS NOT TRUE
+      ORDER BY id`;
+  } catch (err: any) {
+    return NextResponse.json({ error: 'Run neon-quality-setup.sql and neon-curation-setup.sql in Neon first.', detail: err?.message || String(err) }, { status: 500 });
+  }
+
+  const preview = { hedged: { note: 0, remove: 0, untouched: 0 }, all: { note: 0, remove: 0, untouched: 0 } };
+  const removed: any[] = [];
+  const rewritten: any[] = [];
+  const untouched: any[] = [];
+  const problems: any[] = [];
+
+  for (const c of rows) {
+    const cause = String(c.cause ?? ''), nos = String(c.nature_of_suit ?? '');
+    const hedged = looksGuessedWide(c.summary);
+    const screen = screenDocket(cause, nos);
+    const info = hasDocketInfo(cause, nos);
+    const outcome: 'remove' | 'note' = !screen.consumer || !info ? 'remove' : 'note';
+    preview.all[outcome]++;
+    if (hedged) preview.hedged[outcome]++; else preview.hedged.untouched++;
+
+    const act = rule === 'all' || hedged;
+    const line = { id: c.id, case: c.case_name, cause: cause || null, nature_of_suit: nos || null };
+    if (!act) { untouched.push({ id: c.id, case: c.case_name }); continue; }
+    if (!apply) { (outcome === 'remove' ? removed : rewritten).push({ ...line, result: outcome === 'remove' ? 'would remove' : 'would replace with docket note' }); continue; }
+
+    try {
+      if (outcome === 'remove') {
+        const why = !screen.consumer ? screen.reason : 'summary was written without the complaint and the docket gives no facts';
+        const done = await unpublish(c.id, !screen.consumer ? 'not_consumer' : 'no_info', why);
+        removed.push({ ...line, why, result: done ? 'removed' : 'kept (has form submissions)' });
+        if (!done) continue;
+      } else {
+        const note = docketNote({
+          court: c.court_name || '',
+          dateFiled: String(c.date_filed instanceof Date ? c.date_filed.toISOString() : c.date_filed ?? '').slice(0, 10),
+          cause, nos,
+        });
+        await sql`UPDATE cases SET summary = ${note}, summary_source = 'docket' WHERE id = ${c.id}`;
+        rewritten.push({ ...line, result: 'replaced with docket note' });
+      }
+    } catch (err: any) {
+      problems.push({ ...line, error: err?.message || String(err) });
+    }
+  }
+
+  return NextResponse.json({
+    ok: true,
+    pass: 2,
+    mode: apply ? `APPLIED (rule: ${rule})` : 'PREVIEW ONLY',
+    older_summaries_examined: rows.length,
+    if_rule_hedged: preview.hedged,
+    if_rule_all: preview.all,
+    seconds: Math.round((Date.now() - started) / 1000),
+    removed,
+    rewritten,
+    untouched_count: untouched.length,
+    untouched: apply ? untouched.slice(0, 50) : untouched,
     problems,
   });
 }

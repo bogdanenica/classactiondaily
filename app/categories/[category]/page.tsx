@@ -57,7 +57,9 @@ export default async function CategoryPage({ params, searchParams }: { params: P
   if (page > totalPages) notFound();
 
   const cases = await sql`
-    SELECT c.id, c.case_name, c.defendant, c.court_name, c.docket_number, c.date_filed, c.allegation_type, c.summary, c.image_url,
+    SELECT c.id, c.case_name, c.defendant, c.court_name, c.docket_number, c.date_filed, c.summary,
+           CASE WHEN c.summary_source = 'docket' THEN NULL ELSE c.allegation_type END AS allegation_type,
+           CASE WHEN c.summary_source = 'docket' THEN NULL ELSE c.image_url END AS image_url,
            COALESCE((to_jsonb(c)->>'curated')::boolean, false) AS curated
     FROM cases c
     WHERE c.category = ${category}

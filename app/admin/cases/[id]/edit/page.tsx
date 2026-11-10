@@ -7,9 +7,11 @@ import { CATEGORIES } from '../../../../lib/site';
 import { STATUS_LABEL, asStatus } from '../../../../lib/caseStatus';
 import { unpublish } from '../../../../lib/caseHold';
 import { tidy } from '../../../../lib/caseQuality';
+import { generateImagePrompt, generateAndStoreImage, IMAGE_VERSION } from '../../../../lib/imageGen';
 
 export const metadata = { title: 'Edit case', robots: { index: false, follow: false } };
 export const dynamic = 'force-dynamic';
+export const maxDuration = 120;
 
 const sql = neon(process.env.DATABASE_URL!);
 const ALLEGATIONS = ['False advertising', 'Mislabeling', 'Auto-renewal', 'Product defect', 'Pricing', 'Privacy', 'Other'];
@@ -65,6 +67,17 @@ export default async function EditCasePage({ params, searchParams }: { params: P
     `;
     if (newStatus && newStatus !== 'unchanged' && newStatus in STATUS_LABEL) {
       await sql`UPDATE cases SET status = ${newStatus}, status_basis = 'set by attorney', status_checked_at = now() WHERE id = ${id}`;
+    }
+    if (formData.get('new_image') === 'on') {
+      try {
+        const prompt = await generateImagePrompt({
+          caseName: str('case_name', 300), defendant: str('defendant', 300), category, allegation, summary,
+        });
+        const url = await generateAndStoreImage(prompt, `cases/edit-${id}-${Date.now()}-${IMAGE_VERSION}`);
+        await sql`UPDATE cases SET image_url = ${url} WHERE id = ${id}`;
+      } catch (err) {
+        console.error('[admin] image regeneration failed:', err);
+      }
     }
     revalidatePath(`/cases/${id}`);
     revalidatePath('/');
@@ -143,6 +156,11 @@ export default async function EditCasePage({ params, searchParams }: { params: P
         <label style={{ display: 'flex', gap: 8, alignItems: 'flex-start', marginTop: 10, fontSize: 14 }}>
           <input type="checkbox" name="firm_represents" defaultChecked={c.firm_represents === true} style={{ marginTop: 3 }} />
           <span><strong>Our firm represents the plaintiffs in this case.</strong> The page will say so.</span>
+        </label>
+
+        <label style={{ display: 'flex', gap: 8, alignItems: 'flex-start', marginTop: 10, fontSize: 14 }}>
+          <input type="checkbox" name="new_image" style={{ marginTop: 3 }} />
+          <span><strong>Make a new image from this summary.</strong> Use this when the picture no longer matches the case. Saving takes up to a minute.</span>
         </label>
 
         <div style={{ marginTop: 20 }}>

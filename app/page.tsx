@@ -38,7 +38,9 @@ export default async function Home({ searchParams }: { searchParams: SearchParam
 
   const cases = await sql`
     SELECT c.id, c.case_name, c.defendant, c.court_name, c.docket_number,
-           c.date_filed, c.category, c.allegation_type, c.summary, c.image_url,
+           c.date_filed, c.category, c.summary,
+           CASE WHEN c.summary_source = 'docket' THEN NULL ELSE c.allegation_type END AS allegation_type,
+           CASE WHEN c.summary_source = 'docket' THEN NULL ELSE c.image_url END AS image_url,
            COALESCE((to_jsonb(c)->>'curated')::boolean, false) AS curated
     FROM cases c
     -- A case added by hand sorts by the day it was added, not its filing date.
