@@ -41,9 +41,10 @@ export default async function Home({ searchParams }: { searchParams: SearchParam
            c.date_filed, c.category, c.allegation_type, c.summary, c.image_url,
            COALESCE((to_jsonb(c)->>'curated')::boolean, false) AS curated
     FROM cases c
-    WHERE (${since}::date IS NULL OR date_filed >= ${since}::date)
-      AND (${cats}::text[] IS NULL OR category = ANY(${cats}::text[]))
-    ORDER BY date_filed DESC, id DESC
+    -- A case added by hand sorts by the day it was added, not its filing date.
+    WHERE (${since}::date IS NULL OR (CASE WHEN c.manual IS TRUE THEN c.created_at::date ELSE c.date_filed END) >= ${since}::date)
+      AND (${cats}::text[] IS NULL OR c.category = ANY(${cats}::text[]))
+    ORDER BY (CASE WHEN c.manual IS TRUE THEN c.created_at::date ELSE c.date_filed END) DESC, c.id DESC
     LIMIT 50
   `;
 

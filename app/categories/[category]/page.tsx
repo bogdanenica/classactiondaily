@@ -61,7 +61,7 @@ export default async function CategoryPage({ params, searchParams }: { params: P
            COALESCE((to_jsonb(c)->>'curated')::boolean, false) AS curated
     FROM cases c
     WHERE c.category = ${category}
-    ORDER BY date_filed DESC, id DESC
+    ORDER BY (CASE WHEN c.manual IS TRUE THEN c.created_at::date ELSE c.date_filed END) DESC, c.id DESC
     LIMIT ${PAGE_SIZE} OFFSET ${offset}
   `;
 
