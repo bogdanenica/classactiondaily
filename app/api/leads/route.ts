@@ -19,7 +19,7 @@ const DEDUPE_WINDOW_HOURS = 24;      // same address + same case = duplicate
 const REVIEW_TEXT_1 =
   'We have received your message. An attorney at {firm} will review it. If we think we may be able to help, we may contact you within the next 30 days. We receive more messages than we can answer individually, so you may not hear from us at all.';
 const REVIEW_TEXT_2 =
-  'If you have not heard from us within 30 days, please assume we are not able to take your matter. Legal claims have filing deadlines, so do not rely on us to protect your rights in the meantime; consider speaking with another attorney. There is no cost and no obligation.';
+  'If you have not heard from us within 30 days, please assume we are not able to take your matter. Legal claims have filing deadlines, so do not rely on us to protect your rights in the meantime; consider speaking with another attorney. Submitting this form does not create any obligation for you or for the attorney. If your matter is selected and you and the attorney both decide to work together, you will receive a written engagement letter setting out the terms.';
 const NEWSLETTER_TEXT =
   'You also signed up for our monthly email about new investigations we are running.';
 

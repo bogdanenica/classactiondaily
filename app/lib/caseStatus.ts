@@ -30,7 +30,7 @@ export const FINAL_STATUSES: CaseStatus[] = ['settled', 'dismissed', 'dismissed_
 export const STATUS_SENTENCE: Record<CaseStatus, string> = {
   no_response: 'The defendant has not yet responded to the complaint.',
   answered: 'The defendant has answered the complaint, and the case is proceeding.',
-  mtd_pending: 'The defendant has asked the court to dismiss the case. The court has not yet ruled.',
+  mtd_pending: 'The defendant has asked the court to dismiss the case. We have not found a ruling on that request.',
   mtd_denied: 'The court denied the defendant’s motion to dismiss, in whole or in part, and the case is proceeding.',
   mtd_granted: 'The court granted a motion to dismiss. The plaintiffs may have been given a chance to amend their complaint.',
   arbitration: 'The defendant has asked the court to send the dispute to arbitration.',

@@ -83,7 +83,7 @@ export default function IntakeForm({ caseId, investigationId, productHint }: Pro
       <div className="intake">
         <h2>Thank you</h2>
         <div className="success">
-          Your message has been received. We have sent a confirmation to your email address. If you don&apos;t see it within a few minutes, check your spam folder. An attorney will review your message and may contact you within the next 30 days. We cannot respond to everyone, so you may not hear from us at all. There is no obligation.
+          Your message has been received. We have sent a confirmation to your email address. If you don&apos;t see it within a few minutes, check your spam folder. An attorney will review your message and may contact you within the next 30 days. We cannot respond to everyone, so you may not hear from us at all. Submitting this form does not create any obligation for you or for the attorney. If your matter is selected and you and the attorney both decide to work together, you will receive a written engagement letter setting out the terms.
         </div>
       </div>
     );
