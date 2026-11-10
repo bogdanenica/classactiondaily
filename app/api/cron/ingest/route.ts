@@ -1,20 +1,32 @@
 import { neon } from '@neondatabase/serverless';
-import Anthropic from '@anthropic-ai/sdk';
 import { NextResponse } from 'next/server';
 import { generateImagePrompt, generateAndStoreImage, IMAGE_VERSION } from '@/app/lib/imageGen';
+import { screenDocket, hasDocketInfo, summarizeFromDocket, summaryProblems, tidy } from '@/app/lib/caseQuality';
+import { alreadyKnown, holdNew } from '@/app/lib/caseHold';
+
+// Daily intake of newly filed class actions from CourtListener.
+//
+// A case is published on the day it is filed only when the docket itself says
+// what kind of case it is (cause of action or nature of suit) and that kind is
+// a consumer case. The first summary states docket facts only. Everything else
+// is held: the nightly complaint reader (app/api/cron/enrich) publishes a held
+// case once it has read the complaint and confirmed it is a consumer class
+// action.
+
 const sql = neon(process.env.DATABASE_URL!);
-const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY! });
 export const maxDuration = 300;
+
 export async function GET(request: Request) {
+  const { searchParams } = new URL(request.url);
+  const secret = process.env.CRON_SECRET;
   const authHeader = request.headers.get('authorization');
-  if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
+  if (!secret || (authHeader !== `Bearer ${secret}` && searchParams.get('key') !== secret)) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
+  const dry = searchParams.get('dry') === '1';
 
   const imageErrors: string[] = [];
-
-  const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000)
-    .toISOString().split('T')[0];
+  const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString().split('T')[0];
 
   const url = new URL('https://www.courtlistener.com/api/rest/v4/search/');
   url.searchParams.set('type', 'r');
@@ -28,7 +40,7 @@ export async function GET(request: Request) {
       headers: { Authorization: `Token ${process.env.COURTLISTENER_TOKEN}` },
     });
     if (res.ok) break;
-    if (attempt < 3) await new Promise(r => setTimeout(r, 2000 * attempt));
+    if (attempt < 3) await new Promise((r) => setTimeout(r, 13_000));
   }
   if (!res || !res.ok) {
     return NextResponse.json({ error: `CourtListener: ${res?.status ?? 'no response'}` }, { status: 500 });
@@ -36,28 +48,50 @@ export async function GET(request: Request) {
   const data = await res.json();
 
   let inserted = 0;
-  for (const r of data.results) {
-    const existing = await sql`
-      SELECT id FROM cases WHERE courtlistener_id = ${r.docket_id}
-    `;
-    if (existing.length > 0) continue;
+  let held = 0;
+  const log: any[] = [];
 
-    const caseName = r.caseName || '';
-    const summary = await summarizeCase(caseName, r.cause || '', r.suitNature || '');
+  for (const r of data.results ?? []) {
+    if (await alreadyKnown(r.docket_id)) continue;
 
-    if (summary.category === 'Other') {
+    const caseName: string = r.caseName || '';
+    const cause: string = String(r.cause ?? '').trim();
+    const nos: string = String(r.suitNature ?? '').trim();
+    const docketUrl = r.docket_absolute_url ? `https://www.courtlistener.com${r.docket_absolute_url}` : null;
+    const facts = {
+      courtlistener_id: r.docket_id, docket_number: r.docketNumber, case_name: caseName,
+      court_id: r.court_id, court_name: r.court, date_filed: r.dateFiled,
+      raw_complaint_url: docketUrl, cause, nature_of_suit: nos,
+    };
+    const hold = async (reason: 'no_info' | 'not_consumer', detail: string) => {
+      held++;
+      log.push({ case: caseName, action: `held: ${reason}`, detail });
+      if (!dry) await holdNew(r.docket_id, caseName, reason, detail, facts);
+    };
+
+    const screen = screenDocket(cause, nos);
+    if (!screen.consumer) { await hold('not_consumer', screen.reason); continue; }
+    if (!hasDocketInfo(cause, nos)) { await hold('no_info', 'docket has no cause of action or nature of suit yet'); continue; }
+
+    let s;
+    try {
+      s = await summarizeFromDocket({ caseName, court: r.court || '', dateFiled: r.dateFiled || '', cause, nos });
+    } catch (err: any) {
+      await hold('no_info', `summary failed: ${err?.message || String(err)}`);
       continue;
     }
+    if (!s.consumer) { await hold('not_consumer', s.reason || 'not a consumer case'); continue; }
+    const problem = summaryProblems(s, 'docket');
+    if (problem) { await hold('no_info', problem); continue; }
+    if (s.category === 'Other') { await hold('no_info', 'docket facts do not show a consumer category'); continue; }
+
+    const summary = tidy(s.summary);
+    if (dry) { inserted++; log.push({ case: caseName, action: 'would publish', cause, nos, summary }); continue; }
 
     let imageUrl: string | null = null;
     try {
-      // CHANGED: the image step now sees the whole case, not just two labels.
       const imgPrompt = await generateImagePrompt({
-        caseName,
-        defendant: summary.defendant,
-        category: summary.category,
-        allegation: summary.allegation_type,
-        summary: summary.summary,
+        caseName, defendant: s.defendant, category: s.category, allegation: s.allegation_type, summary,
       });
       imageUrl = await generateAndStoreImage(imgPrompt, `cases/${r.docket_id}-${IMAGE_VERSION}`);
     } catch (err: any) {
@@ -68,44 +102,18 @@ export async function GET(request: Request) {
     await sql`
       INSERT INTO cases (
         courtlistener_id, docket_number, case_name, court_id, court_name,
-        date_filed, defendant, category, allegation_type, summary, raw_complaint_url, image_url
+        date_filed, defendant, category, allegation_type, summary, raw_complaint_url, image_url,
+        summary_source, cause, nature_of_suit, meta_checked_at
       ) VALUES (
         ${r.docket_id}, ${r.docketNumber}, ${caseName}, ${r.court_id},
-        ${r.court}, ${r.dateFiled}, ${summary.defendant},
-        ${summary.category}, ${summary.allegation_type}, ${summary.summary},
-        ${r.docket_absolute_url ? `https://www.courtlistener.com${r.docket_absolute_url}` : null},
-        ${imageUrl}
+        ${r.court}, ${r.dateFiled}, ${s.defendant},
+        ${s.category}, ${s.allegation_type}, ${summary}, ${docketUrl}, ${imageUrl},
+        'docket', ${cause}, ${nos}, now()
       )
     `;
     inserted++;
+    log.push({ case: caseName, action: 'published', cause, nos });
   }
 
-  return NextResponse.json({ ok: true, inserted, scanned: data.results.length, imageErrors });
-}
-
-async function summarizeCase(caseName: string, cause: string, suitNature: string) {
-  const message = await anthropic.messages.create({
-    model: 'claude-sonnet-4-6',
-    max_tokens: 600,
-    messages: [{
-      role: 'user',
-      content: `You are summarizing a newly filed consumer class action lawsuit.
-
-Case name: ${caseName}
-Cause of action: ${cause || 'not specified'}
-Nature of suit: ${suitNature || 'not specified'}
-
-Respond ONLY with valid JSON in this exact shape:
-{
-  "defendant": "the company being sued, as a clean name without LLC/Inc unless ambiguous",
-  "category": "one of: Food & beverage | Consumer electronics | Subscription services | Personal care | Automotive | Retail | Apparel | Financial products | Home appliances | Other",
-  "allegation_type": "one of: False advertising | Mislabeling | Auto-renewal | Product defect | Pricing | Privacy | Other",
-  "summary": "a single paragraph, 100-150 words, plain English, explaining what plaintiffs allege and who is in the proposed class. No legal jargon. No quotes from the complaint."
-}`
-    }],
-  });
-
-  const text = message.content[0].type === 'text' ? message.content[0].text : '';
-  const cleaned = text.replace(/^```json\s*/, '').replace(/```\s*$/, '').trim();
-  return JSON.parse(cleaned);
+  return NextResponse.json({ ok: true, dry, inserted, held, scanned: (data.results ?? []).length, imageErrors, log });
 }

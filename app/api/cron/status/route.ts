@@ -112,6 +112,11 @@ async function checkOne(c: any, terminated: string | null, b: Budget) {
     terminated: result.closed ?? terminated,
     entries: entries.length,
     blank: entries.length - withText.length,
+    events: withText
+      .slice()
+      .sort((x, y) => String(y.date ?? '').localeCompare(String(x.date ?? '')))
+      .slice(0, 5)
+      .map((e) => ({ date: e.date ?? null, text: e.text.replace(/\s+/g, ' ').slice(0, 220) })),
     latest: withText
       .slice()
       .sort((x, y) => String(y.date ?? '').localeCompare(String(x.date ?? '')))
@@ -194,11 +199,14 @@ export async function GET(request: Request) {
         await sql`
           UPDATE cases
           SET status = ${r.status}, status_basis = ${r.basis},
-              date_terminated = ${r.terminated}, status_checked_at = now()
+              date_terminated = ${r.terminated}, status_checked_at = now(),
+              status_events = ${JSON.stringify(r.events)}::jsonb
           WHERE id = ${c.id}`;
         updated++;
         delete r.latest;
+        delete r.events;
       }
+      if (dry) delete r.events;
       results.push(r);
     } catch (err: any) {
       if (err instanceof OutOfBudget) { stopped = 'request cap'; break; }

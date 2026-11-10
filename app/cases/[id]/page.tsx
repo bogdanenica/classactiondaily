@@ -71,6 +71,11 @@ export default async function CaseDetail({ params }: { params: Params }) {
   // Until a case has been checked, it shows the as-filed default.
   const status = asStatus(c.status);
   const checkedAt: Date | null = c.status_checked_at ? new Date(c.status_checked_at) : null;
+  const fromComplaint = c.summary_source === 'complaint';
+  // Latest docket entries, saved by the status check. Public-record text, shown as is.
+  const events: { date: string | null; text: string }[] = Array.isArray(c.status_events)
+    ? c.status_events.filter((e: any) => e && typeof e.text === 'string' && e.text.trim()).slice(0, 5)
+    : [];
   const docketLink = c.raw_complaint_url
     ? <a href={c.raw_complaint_url} target="_blank" rel="noopener noreferrer">court docket</a>
     : <>court docket</>;
@@ -162,13 +167,33 @@ export default async function CaseDetail({ params }: { params: Params }) {
               {' '}For anything more recent, see the {docketLink}. Our <Link href="/faq">FAQ</Link> explains how class actions work.
             </p>
 
+            {events.length > 0 && (
+              <>
+                <h2>Recent docket activity</h2>
+                <ul style={{ paddingLeft: 18, margin: '0 0 8px' }}>
+                  {events.map((e, i) => (
+                    <li key={i} style={{ marginBottom: 6 }}>
+                      {e.date && <><time dateTime={e.date.slice(0, 10)}>{formatDate(e.date.slice(0, 10) + 'T12:00:00Z')}</time>: </>}
+                      {e.text}
+                    </li>
+                  ))}
+                </ul>
+                <p style={{ fontSize: 13, color: 'var(--ink-muted)' }}>
+                  Entries are quoted from the public court docket as of the last status check and may be abbreviated.
+                </p>
+              </>
+            )}
+
             <p style={{ fontSize: 13, color: 'var(--ink-muted)', borderTop: '1px solid var(--border)', paddingTop: 12, marginTop: 20 }}>
               {c.raw_complaint_url ? (
                 <>Source: <a href={c.raw_complaint_url} target="_blank" rel="noopener noreferrer">CourtListener docket entry</a>. </>
               ) : (
                 <>Source: CourtListener / PACER public records. </>
               )}
-              This summary was generated automatically from the public docket and has not been reviewed by an attorney. It may contain errors and may not reflect subsequent filings. Published by {OWNER.firm}; responsible attorney {OWNER.name}.
+              {fromComplaint
+                ? <>This summary was generated automatically from the complaint filed in this case and has not been reviewed by an attorney. It describes allegations, which have not been proven. </>
+                : <>This summary was generated automatically from the docket&apos;s case-type coding; the complaint itself has not yet been read. It has not been reviewed by an attorney. </>}
+              It may contain errors and may not reflect subsequent filings. Published by {OWNER.firm}; responsible attorney {OWNER.name}.
             </p>
           </div>
 
