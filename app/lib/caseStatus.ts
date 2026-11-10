@@ -68,7 +68,7 @@ export function asStatus(v: unknown): CaseStatus {
 
 export type DocketEntry = { date: string | null; text: string };
 
-export type Classification = { status: CaseStatus; basis: string };
+export type Classification = { status: CaseStatus; basis: string; closed?: string | null };
 
 const RE = {
   answer: /(?<!\b(shall|to|must|may|will|should|not)\s)\banswer\b(?=\s*(to|by|and|with|of|filed|,|;|\.|$))/i,
@@ -84,6 +84,11 @@ const RE = {
   voluntary: /\b(voluntar(y|ily) dismiss|notice of (voluntary )?dismissal|stipulat(ion|ed) (of|for|to) dismiss|41\(a\))/i,
   transfer: /\b(transferr(ed|ing)|order (of )?transfer|conditional transfer order|remand(ed|ing)? to|case transferred|MDL)\b/i,
   dismissedOrder: /\b(dismiss(ed|ing|al)|judgment)\b/i,
+  // Courts mark a closed case in the entries themselves. CourtListener's own
+  // "date terminated" field is often empty, so this is the main closure signal.
+  closing: /\b(terminate[ds]? (the )?(civil )?case|(civil )?case terminated|case (is )?closed|clos(e|es|ed|ing) (this |the )?(civil )?(case|action|file)|order dismissing (the |this )?(case|action)|dismissing (the |this )?(case|action)|JS-?6|judgment (is |was )?(hereby )?entered|final judgment|clerk'?s judgment)\b/i,
+  closingExclude: /\b(administrativ|motion (to|for)|proposed|request (to|for))/i,
+  reopen: /\b(re-?open(s|ed|ing)?|vacat(e|es|ed|ing) (the )?(judgment|dismissal|order (of )?dismiss))/i,
 };
 
 const NOT_ORDER = /\b(proposed order|memorandum (of law )?(in|of) (support|opposition)|(memorandum|brief|response|reply|opposition|declaration|notice)\b[^.]{0,30}\b(in support|in opposition|to|re)\b)/i;
@@ -121,15 +126,25 @@ export function classifyDocket(
   const arbitration = last((t) => RE.arbitration.test(t));
   const answer = last((t) => RE.answer.test(t.slice(0, 80)) && !RE.answerExclude.test(t.slice(0, 120)));
 
-  if (opts.terminated) {
-    if (settlement) return { status: 'settled', basis: `closed ${opts.terminated}; "${clip(settlement.text)}"` };
-    if (voluntary) return { status: 'dismissed_voluntary', basis: `closed ${opts.terminated}; "${clip(voluntary.text)}"` };
-    if (transfer) return { status: 'transferred', basis: `closed ${opts.terminated}; "${clip(transfer.text)}"` };
+  // Closed according to the entries, unless something later reopened it.
+  const closing = last((t) => RE.closing.test(t) && !RE.closingExclude.test(t.slice(0, 60)));
+  const reopened = closing ? list.some((e) => e.date > closing.date && RE.reopen.test(e.text)) : false;
+  const terminated = opts.terminated ?? (closing && !reopened ? closing.date || 'date unknown' : null);
+
+  if (terminated) {
+    const r = whyClosed();
+    return { ...r, closed: /^\d{4}-\d{2}-\d{2}/.test(terminated) ? terminated.slice(0, 10) : null };
+  }
+
+  function whyClosed(): Classification {
+    if (settlement) return { status: 'settled', basis: `closed ${terminated}; "${clip(settlement.text)}"` };
+    if (voluntary) return { status: 'dismissed_voluntary', basis: `closed ${terminated}; "${clip(voluntary.text)}"` };
+    if (transfer) return { status: 'transferred', basis: `closed ${terminated}; "${clip(transfer.text)}"` };
     const dism = last((t) => isOrder(t) && RE.dismissedOrder.test(t));
     if ((mtdOrder && RE.grant.test(mtdOrder.text)) || dism) {
-      return { status: 'dismissed', basis: `closed ${opts.terminated}; "${clip((mtdOrder ?? dism)!.text)}"` };
+      return { status: 'dismissed', basis: `closed ${terminated}; "${clip((mtdOrder && RE.grant.test(mtdOrder.text) ? mtdOrder : dism)!.text)}"` };
     }
-    return { status: 'closed', basis: `closed ${opts.terminated}; no clear reason in ${list.length} entries` };
+    return { status: 'closed', basis: `closed ${terminated}${closing ? `; "${clip(closing.text)}"` : ''}` };
   }
 
   if (settlement) return { status: 'settlement', basis: `"${clip(settlement.text)}"` };

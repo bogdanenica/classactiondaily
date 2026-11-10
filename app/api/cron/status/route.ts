@@ -109,7 +109,7 @@ async function checkOne(c: any, terminated: string | null, b: Budget) {
     previous: c.status ?? null,
     status: result.status,
     basis: result.basis,
-    terminated,
+    terminated: result.closed ?? terminated,
     entries: entries.length,
     blank: entries.length - withText.length,
     latest: withText
